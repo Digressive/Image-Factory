@@ -18,7 +18,7 @@
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES Microsoft Deployment Toolkit PowerShell Modules, Hyper-v Management PowerShell Modules
+.EXTERNALMODULEDEPENDENCIES Microsoft Deployment Toolkit PowerShell Modules Hyper-V Management PowerShell Modules
 
 .REQUIREDSCRIPTS
 
@@ -61,10 +61,10 @@
     $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
     
     .PARAMETER Build
-    The local or UNC path to the build share of MDT. This and the deploy switch can point to the same location.
+    The local or UNC path to the build share of MDT. Both this and the deploy switch can point to the same location.
 
     .PARAMETER Deploy
-    The local or UNC path to the deploy share of MDT. This and the build switch can point to the same location.
+    The local or UNC path to the deploy share of MDT. Both this and the build switch can point to the same location.
 
     .PARAMETER Ts
     The comma-separated list of task sequence ID's to build.
@@ -112,13 +112,18 @@
     Connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh hyperv01 -Vhd D:\Hyper-V\VHD -Boot F:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -L E:\logs -SendTo me@contoso.com -From Image-Factory@contoso.com -Smtp exch01.contoso.com -User me@contoso.com -Pwd P@ssw0rd -UseSsl -Ts W10-1703,WS16-S
+    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh hyperv01 -Vhd D:\Hyper-V\VHD
+    -Boot F:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -Ts W10-1803,WS16-S -L E:\scripts
+    -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
 
-    This string will build two WIM from the two task sequences: W10-1703 & WS16-S. They will be imported to the deployment share on MDT01. The Hyper-V server used will be
-    hyperv01, the VHD for the VMs generated will be stored in D:\Hyper-V\VHD on the server hyperv01. The boot iso file will be F:\iso\LiteTouchPE_x64.iso located on the
-    Hyper-V server. The Virtual Switch used by the VM will be called vSwitch-Ext. The log file will be output to E:\logs and it will be emailed using an SSL conection.
+    This string will build a WIM file from each of the task sequences; W10-1803 & WS16-S. They will be imported to the deployment share on MDT01.
+    The Hyper-V server used will be HYPERV01, the VHD for the VMs generated will be stored in D:\Hyper-V\VHD on the server HYPERV01.
+    The boot iso file will be F:\iso\LiteTouchPE_x64.iso, located on the Hyper-V server. The Virtual Switch used by the VM will be called vSwitch-Ext.
+    The log file will be output to E:\logs and it will be emailed using an SSL conection.
+
 #>
 
+## Set up command line switches and what variables they map to.
 [CmdletBinding()]
 Param(
     [parameter(Mandatory=$True)]
@@ -158,13 +163,13 @@ Param(
     [switch]$Compat,
     [switch]$Remote)
 
-## If logging is configured, start log
+## If logging is configured, start the log file.
 If ($LogPath)
 {
     $LogFile = ("Image-Factory-{0:yyyy-MM-dd-HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
 
-    ## If the log file already exists, clear it
+    ## If the log file already exists, clear it.
     $LogT = Test-Path -Path $Log
 
     If ($LogT)
@@ -177,7 +182,7 @@ If ($LogPath)
     Add-Content -Path $Log -Value ""
 }
 
-## If compat is configured, load the older Hyper-V PS module
+## If compat is configured, load the older Hyper-V PS module.
 If ($Compat) 
 {
     If ($LogPath)
@@ -189,7 +194,7 @@ If ($Compat)
     Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
 }
 
-## Import MDT PS module
+## Import MDT PS module.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value "$(Get-Date -Format G) Importing MDT PowerShell Module"
@@ -198,9 +203,10 @@ If ($LogPath)
 Write-Host "$(Get-Date -Format G) Importing MDT PowerShell Module"
 Import-Module "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
 
+## For each of the Task Sequence ID's configured, run the build process.
 ForEach ($Id in $TsId)
 {
-    ## Test to see if the build environment is dirty.
+    ## Test to see if the build environment is dirty, if it is exit the script.
     $EnvDirtyTest = Test-Path -Path $MdtBuildPath\Control\CustomSettings-backup.ini
     If ($EnvDirtyTest)
     {
@@ -218,7 +224,6 @@ ForEach ($Id in $TsId)
         Exit
     }
     
-    ## Setup MDT custom settings for VM auto deploy
     If ($LogPath)
     {
         Add-Content -Path $Log -Value ""
@@ -232,6 +237,7 @@ ForEach ($Id in $TsId)
     Write-Host ""
     Write-Host "$(Get-Date -Format G) Backing up current MDT CustomSettings.ini"
 
+    ## Backup the exisiting CustomSettings.ini.
     Copy-Item $MdtBuildPath\Control\CustomSettings.ini $MdtBuildPath\Control\CustomSettings-backup.ini
     Start-Sleep -s 5
 
@@ -242,13 +248,14 @@ ForEach ($Id in $TsId)
 
     Write-Host "$(Get-Date -Format G) Setting MDT CustomSettings.ini for Task Sequence ID: $Id"
 
+    ## Setup MDT CustomSettings.ini for auto deploy.
     Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
     Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
     Add-Content $MdtBuildPath\Control\CustomSettings.ini "TaskSequenceID=$Id"
     Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipTaskSequence=YES"
     Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipComputerName=YES"
 
-    ## Create VM
+    ## Set the VM name in Hyper-V.
     $VmName = ("build-{0:yyyy-MM-dd-HH-mm-ss}" -f (Get-Date))
 
     If ($LogPath)
@@ -262,6 +269,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -Format G) Adding VHD: $VhdPath\$VmName.vhdx"
     Write-Host "$(Get-Date -Format G) Adding Virtual NIC: $VmNic"
 
+    ## Create the VM.
     New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost
 
     If ($LogPath)
@@ -275,6 +283,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -Format G) Configuring VM Static Memory"
     Write-Host "$(Get-Date -Format G) Configuring VM to boot from $BootMedia"
 
+    ## Configure the VM.
     Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
     Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
 
@@ -285,9 +294,10 @@ ForEach ($Id in $TsId)
 
     Write-Host "$(Get-Date -Format G) Starting $VmName on $VmHost with $Id"
 
+    ## Start the VM.
     Start-VM $VmName -ComputerName $VmHost
 
-    ## Wait for VM to stop
+    ## Wait for VM to shutdown.
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -Format G) Waiting for $VmName to build $Id"
@@ -297,7 +307,7 @@ ForEach ($Id in $TsId)
 
     While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -s 10}
 
-    ## Remove VM and VHD
+    ## Remove VMs VHD if Remote option is set or not.
     If ($Remote)
     {
         $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
@@ -329,9 +339,9 @@ ForEach ($Id in $TsId)
         Start-Sleep -s 5
     }
 
+    ## Remove VM.
     Remove-VM $VmName -ComputerName $VmHost -Force
 
-    ## Restore MDT custom settings
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -Format G) Restoring MDT CustomSettings.ini from backup"
@@ -339,6 +349,7 @@ ForEach ($Id in $TsId)
 
     Write-Host "$(Get-Date -Format G) Restoring MDT CustomSettings.ini from backup"
 
+    ## Restore the CustomSettings.ini file from the backup.
     Remove-Item $MdtBuildPath\Control\CustomSettings.ini
     Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
     Start-Sleep -s 5
@@ -353,7 +364,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -Format G) Finished process for $Id"
 }
 
-## Connect to MDT
+## Connect to MDT.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value "$(Get-Date -Format G) Creating PSDrive to $MdtDeployPath"
@@ -361,12 +372,13 @@ If ($LogPath)
 
 Write-Host "$(Get-Date -Format G) Creating PSDrive to $MdtDeployPath"
 
+## Create PSDrive to the MDT deploy path.
 New-PSDrive -Name "DS002" -PSProvider MDTProvider -Root $MdtDeployPath
 
 ## Get the WIM files and store them in a variable
 $Wims = Get-ChildItem $MdtBuildPath\Captures\*.wim
 
-## Import the WIMs from the variable above into MDT
+## For each of the WIMs, import them into MDT.
 ForEach ($file in $Wims)
 {
     If ($LogPath)
@@ -379,7 +391,6 @@ ForEach ($file in $Wims)
     Import-MDTOperatingSystem -path "DS002:\Operating Systems" -SourceFile $file -DestinationFolder $file.Name
 }
 
-## Remove captured WIMs
 If ($LogPath)
 {
     Add-Content -Path $Log -Value "$(Get-Date -Format G) Removing captured WIM files"
@@ -387,6 +398,7 @@ If ($LogPath)
 
 Write-Host "$(Get-Date -Format G) Removing captured WIM files"
 
+## Remove captured WIMs.
 Remove-Item $MdtBuildPath\Captures\*.wim
 
 ## If log was configured stop the log
