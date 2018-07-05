@@ -100,7 +100,8 @@ The txt file containing the encrypted password for the user account.
 ```
 Configures the script to connect to the SMTP server using SSL.
 
-Example:
+### Example
+
 ```
 Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh hyperv01 -Vhd D:\Hyper-V\VHD -Boot F:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -Ts W10-1803,WS16-S -L E:\scripts -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
 ```
