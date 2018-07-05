@@ -1,5 +1,5 @@
-# Image-Factory
-Image factory for Microsoft Deployment Toolkit
+# Image Factory for Microsoft Deployment Toolkit
+PowerShell based WIM file generation factory of custom Windows builds.
 
 My Image Factory script can also be downloaded from:
 
