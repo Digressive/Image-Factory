@@ -4,7 +4,7 @@ PowerShell based WIM file generation factory of custom Windows builds.
 My Image Factory script can also be downloaded from:
 
 * [The Microsoft TechNet Gallery](https://gallery.technet.microsoft.com/PowerShell-Image-Factory-d6c133b9?redir=0)
-* [The PowerShell Gallery](https://www.powershellgallery.com/packages/Image-Factory/2.8/DisplayScript)
+* [The PowerShell Gallery](https://www.powershellgallery.com/packages/Image-Factory)
 * For full instructions and documentation, [visit my blog post](https://gal.vin/2017/08/26/image-factory/)
 
 -Mike
