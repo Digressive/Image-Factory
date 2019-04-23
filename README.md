@@ -1,4 +1,5 @@
 # Image Factory for Microsoft Deployment Toolkit
+
 PowerShell based WIM file generation factory of custom Windows builds.
 
 My Image Factory script can also be downloaded from:
@@ -9,7 +10,7 @@ My Image Factory script can also be downloaded from:
 
 -Mike
 
-Tweet me if you have questions: [@Digressive](https://twitter.com/digressive)
+Tweet me if you have questions: [@mikegalvin_](https://twitter.com/mikegalvin_)
 
 ## Features and Requirements
 
