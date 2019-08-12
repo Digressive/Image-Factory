@@ -66,19 +66,19 @@
     .PARAMETER Deploy
     The local or UNC path to the deploy share of MDT. Both this and the build switch can point to the same location.
 
-    .PARAMETER Ts
+    .PARAMETER ts
     The comma-separated list of task sequence ID's to build.
 
-    .PARAMETER Vh
+    .PARAMETER vh
     The name of the computer running Hyper-V. Can be local or remote.
 
-    .PARAMETER Vhd
+    .PARAMETER vhd
     The path relative to the Hyper-V server of where to store the VHD file for the VM(s).
 
     .PARAMETER Boot
     The path relative to the Hyper-V server of where the ISO file to boot from is stored.
 
-    .PARAMETER VNic
+    .PARAMETER vnic
     The name of the virtual switch that the VM should use to communicate with the network.
 
     .PARAMETER Compat
@@ -112,15 +112,14 @@
     Connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh hyperv01 -Vhd D:\Hyper-V\VHD
-    -Boot F:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -Ts W10-1803,WS16-S -L E:\scripts
+    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -vh hyperv01 -vhd C:\Hyper-V\VHD
+    -Boot C:\iso\LiteTouchPE_x64.iso -vnic vSwitch-Ext -Remote -ts W10-1803,WS16-S -L C:\scripts\logs
     -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
 
     This string will build a WIM file from each of the task sequences; W10-1803 & WS16-S. They will be imported to the deployment share on MDT01.
-    The Hyper-V server used will be HYPERV01, the VHD for the VMs generated will be stored in D:\Hyper-V\VHD on the server HYPERV01.
-    The boot iso file will be F:\iso\LiteTouchPE_x64.iso, located on the Hyper-V server. The Virtual Switch used by the VM will be called vSwitch-Ext.
-    The log file will be output to E:\logs and it will be emailed using an SSL conection.
-
+    The Hyper-V server used will be HYPERV01, the VHD for the VMs generated will be stored in C:\Hyper-V\VHD on the server HYPERV01.
+    The boot iso file will be C:\iso\LiteTouchPE_x64.iso, located on the Hyper-V server. The Virtual Switch used by the VM will be called vSwitch-Ext.
+    The log file will be output to C:\scripts\logs and it will be emailed using an SSL conection.
 #>
 
 ## Set up command line switches and what variables they map to.
@@ -133,19 +132,19 @@ Param(
     [alias("Deploy")]
     $MdtDeployPath,
     [parameter(Mandatory=$True)]
-    [alias("Ts")]
+    [alias("ts")]
     $TsId,
     [parameter(Mandatory=$True)]
-    [alias("Vh")]
+    [alias("vh")]
     $VmHost,
     [parameter(Mandatory=$True)]
-    [alias("Vhd")]
+    [alias("vhd")]
     $VhdPath,
     [parameter(Mandatory=$True)]
     [alias("Boot")]
     $BootMedia,
     [parameter(Mandatory=$True)]
-    [alias("VNic")]
+    [alias("vnic")]
     $VmNic,
     [alias("L")]
     $LogPath,

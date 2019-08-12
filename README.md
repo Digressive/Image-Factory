@@ -45,15 +45,15 @@ The local or UNC path to the build share of MDT. This and the deploy switch can 
 ```
 The local or UNC path to the deploy share of MDT. This and the build switch can point to the same location.
 ```
--Ts
+-ts
 ```
 The comma-separated list of task sequence ID's to build.
 ```
--Vh
+-vh
 ```
 The name of the computer running Hyper-V. Can be local or remote.
 ```
--Vhd
+-vhd
 ```
 The path relative to the Hyper-V server of where to store the VHD file for the VM(s).
 ```
@@ -61,7 +61,7 @@ The path relative to the Hyper-V server of where to store the VHD file for the V
 ```
 The path relative to the Hyper-V server of where the ISO file to boot from is stored.
 ```
--VNic
+-vnic
 ```
 The name of the virtual switch that the VM should use to communicate with the network.
 ```
@@ -104,7 +104,7 @@ Configures the script to connect to the SMTP server using SSL.
 ### Example
 
 ```
-Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh hyperv01 -Vhd D:\Hyper-V\VHD -Boot F:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -Ts W10-1803,WS16-S -L E:\scripts -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
+Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -vh hyperv01 -vhd C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64.iso -vnic vSwitch-Ext -Remote -ts W10-1803,WS16-S -L C:\scripts\logs -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
 ```
 
-This string will build two WIM from the two task sequences: W10-1803 & WS16-S. They will be imported to the deployment share on MDT01. The Hyper-V server used will be hyperv01, the VHD for the VMs generated will be stored in D:\Hyper-V\VHD on the server hyperv01. The boot iso file will be F:\iso\LiteTouchPE_x64.iso, located on the Hyper-V server. The Virtual Switch used by the VM will be called vSwitch-Ext. The log file will be output to E:\logs and it will be emailed using an SSL conection.
+This string will build two WIM from the two task sequences: W10-1803 & WS16-S. They will be imported to the deployment share on MDT01. The Hyper-V server used will be hyperv01, the VHD for the VMs generated will be stored in C:\Hyper-V\VHD on the server hyperv01. The boot iso file will be C:\iso\LiteTouchPE_x64.iso, located on the Hyper-V server. The Virtual Switch used by the VM will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and it will be emailed using an SSL conection.
