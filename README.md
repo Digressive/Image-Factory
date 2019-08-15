@@ -27,7 +27,7 @@ The password used for SMTP server authentication must be in an encrypted text fi
 
 Please note: This is only required if you need to authenticate to the SMTP server when send the log via e-mail.
 
-```
+``` powershell
 $creds = Get-Credential
 $creds.Password | ConvertFrom-SecureString | Set-Content c:\scripts\ps-script-pwd.txt
 ```
@@ -36,74 +36,105 @@ After running the commands, you will have a text file containing the encrypted p
 
 ### Configuration
 
-```
+``` txt
 -Build
 ```
+
 The local or UNC path to the build share of MDT. This and the deploy switch can point to the same location.
-```
+
+``` txt
 -Deploy
 ```
+
 The local or UNC path to the deploy share of MDT. This and the build switch can point to the same location.
-```
+
+``` txt
 -ts
 ```
+
 The comma-separated list of task sequence ID's to build.
-```
+
+``` txt
 -vh
 ```
+
 The name of the computer running Hyper-V. Can be local or remote.
-```
+
+``` txt
 -vhd
 ```
+
 The path relative to the Hyper-V server of where to store the VHD file for the VM(s).
-```
+
+``` txt
 -Boot
 ```
+
 The path relative to the Hyper-V server of where the ISO file to boot from is stored.
-```
+
+``` txt
 -vnic
 ```
+
 The name of the virtual switch that the VM should use to communicate with the network.
-```
+
+``` txt
 -Compat
 ```
+
 Set if the Hyper-V server is WS2012 R2 and the script is running on Windows 10 or Windows Server 2016. This loads the older version of the Hyper-V module so it is able to manage WS2012 R2 Hyper-V VMs.
-```
+
+``` txt
 -Remote
 ```
+
 Set if the Hyper-V server is a remote device. Do not include this switch if the script is running on the same device as Hyper-V.
-``` 
+
+``` txt
 -L
 ```
+
 The path to output the log file to. The file name will be Image-Factory-YYYY-MM-dd-HH-mm-ss.log
-```
+
+``` txt
 -SendTo
 ```
+
 The e-mail address the log should be sent to.
-```
+
+``` txt
 -From
 ```
+
 The e-mail address the log should be sent from.
-```
+
+``` txt
 -Smtp
 ```
+
 The DNS name or IP address of the SMTP server.
-```
+
+``` txt
 -User
 ```
+
 The user account to connect to the SMTP server.
-```
+
+``` txt
 -Pwd
 ```
+
 The txt file containing the encrypted password for the user account.
-```
+
+``` txt
 -UseSsl
 ```
+
 Configures the script to connect to the SMTP server using SSL.
 
 ### Example
 
-```
+``` txt
 Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -vh hyperv01 -vhd C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64.iso -vnic vSwitch-Ext -Remote -ts W10-1803,WS16-S -L C:\scripts\logs -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
 ```
 
