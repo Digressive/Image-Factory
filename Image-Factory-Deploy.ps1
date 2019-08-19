@@ -1,9 +1,10 @@
-﻿# -------------------------------------------
-# Script: Image-Factory-Deploy-v2-4.ps1
+﻿# ----------------------------------------------------------------------------
+# Script: Image Factory Deploy
 # Version: 2.4
-# Author: Mike Galvin twitter.com/mikegalvin_
-# Date: 18/08/2017
-# -------------------------------------------
+# Author: Mike Galvin
+# Contact: mike@gal.vin or twitter.com/mikegalvin_
+# Date: 2019-08-19
+# ----------------------------------------------------------------------------
 
 [CmdletBinding()]
 Param(
