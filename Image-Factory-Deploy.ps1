@@ -1,55 +1,57 @@
 ﻿# ----------------------------------------------------------------------------
 # Script: Image Factory Deploy
-# Version: 2.4
+# Version: 2.5
 # Author: Mike Galvin
 # Contact: mike@gal.vin or twitter.com/mikegalvin_
-# Date: 2019-08-19
+# Date: 2019-09-04
 # ----------------------------------------------------------------------------
 
 [CmdletBinding()]
 Param(
     [parameter(Mandatory=$true)]
-    [alias("deploy")]
-    $mdtdeploypath,
+    [alias("Deploy")]
+    $MdtDeployPath,
     [parameter(Mandatory=$true)]
-    [alias("ts")]
-    $tsid,
+    [alias("TS")]
+    $TsId,
     [parameter(Mandatory=$true)]
-    [alias("vh")]
-    $vmhost,
+    [alias("VH")]
+    $VmHost,
     [parameter(Mandatory=$true)]
-    [alias("vhd")]
-    $vhdpath,
+    [alias("VHD")]
+    $VhdPath,
     [parameter(Mandatory=$true)]
-    [alias("boot")]
-    $bootmedia,
+    [alias("Boot")]
+    $BootMedia,
     [parameter(Mandatory=$true)]
-    [alias("vnic")]
-    $vmnic,
+    [alias("VNic")]
+    $VmNic,
     [alias("L")]
-    $logpath,
-    [alias("sendto")]
-    $mailto,
-    [alias("from")]
-    $mailfrom,
-    [alias("smtp")]
-    $smtpserver,
-    [alias("user")]
-    $smtpuser,
-    [alias("pwd")]
-    $smtppwd,
-    [switch]$usessl,
-    [switch]$compat,
-    [switch]$remote)
+    $LogPath,
+    [alias("Subject")]
+    $MailSubject,
+    [alias("SendTo")]
+    $MailTo,
+    [alias("From")]
+    $MailFrom,
+    [alias("Smtp")]
+    $SmtpServer,
+    [alias("User")]
+    $SmtpUser,
+    [alias("Pwd")]
+    $SmtpPwd,
+    [switch]$UseSsl,
+    [switch]$Compat,
+    [switch]$Remote)
 
-# If logging is configured, start log
+# If logging is configured, start log.
 If ($LogPath) 
 {
-    $LogFile = "image-factory.log"
+    $LogFile = "Image-Factory-Deploy.log"
     $Log = "$LogPath\$LogFile"
     $LogT = Test-Path -Path $Log
 
-# If the log file already exists, clear it
+# If the log file already exists, clear it.
     If ($LogT)
     {
         Clear-Content -Path $Log
@@ -60,8 +62,8 @@ If ($LogPath)
     Add-Content -Path $Log -Value ""
 }
 
-# If compat is configured, load the older Hyper-V PS module
-If ($compat)
+# If compat is configured, load the older Hyper-V PS module.
+If ($Compat)
 {
     If ($LogPath)
     {
@@ -72,7 +74,7 @@ If ($compat)
     Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
 }
 
-# Import MDT PS module
+# Import MDT PS module.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value "$(Get-Date -format g) Importing MDT PowerShell Module"
@@ -80,12 +82,12 @@ If ($LogPath)
 
 Write-Host "$(Get-Date -format g) Importing MDT PowerShell Module"
 
-$mdt = "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
-Import-Module $mdt
+$Mdt = "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
+Import-Module $Mdt
 
-ForEach ($id in $tsid)
+ForEach ($Id in $TsId)
 {
-    # Setup MDT custom settings for VM auto deploy
+    # Setup MDT custom settings for VM auto deploy.
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
@@ -93,74 +95,74 @@ ForEach ($id in $tsid)
     
     Write-Host "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
 
-    Copy-Item $mdtdeploypath\Control\CustomSettings.ini $mdtdeploypath\Control\CustomSettings-backup.ini
+    Copy-Item $MdtDeployPath\Control\CustomSettings.ini $MdtDeployPath\Control\CustomSettings-backup.ini
     Start-Sleep -s 5
 
     If ($LogPath)
     {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Setting up MDT CustomSettings.ini for Task Sequence ID: $id"
+        Add-Content -Path $Log -Value "$(Get-Date -format g) Setting up MDT CustomSettings.ini for Task Sequence ID: $Id"
     }
 
-    Write-Host "$(Get-Date -format g) Setting MDT CustomSettings.ini for Task Sequence ID: $id"
+    Write-Host "$(Get-Date -format g) Setting MDT CustomSettings.ini for Task Sequence ID: $Id"
 
-    Add-Content $mdtdeploypath\Control\CustomSettings.ini "TaskSequenceID=$id"
-    Add-Content $mdtdeploypath\Control\CustomSettings.ini "SkipTaskSequence=YES"
-    Add-Content $mdtdeploypath\Control\CustomSettings.ini "SkipComputerName=YES"
+    Add-Content $MdtDeployPath\Control\CustomSettings.ini "TaskSequenceID=$Id"
+    Add-Content $MdtDeployPath\Control\CustomSettings.ini "SkipTaskSequence=YES"
+    Add-Content $MdtDeployPath\Control\CustomSettings.ini "SkipComputerName=YES"
 
-    # Create VM
-    $vmname = $id
+    # Create VM.
+    $VmName = $Id
 
     If ($LogPath)
     {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Creating VM: $vmname on $vmhost"
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Adding VHD: $vhdpath\$vmname.vhdx"
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Adding Virtual NIC: $vmnic"
+        Add-Content -Path $Log -Value "$(Get-Date -format g) Creating VM: $VmName on $VmHost"
+        Add-Content -Path $Log -Value "$(Get-Date -format g) Adding VHD: $VhdPath\$VmName.vhdx"
+        Add-Content -Path $Log -Value "$(Get-Date -format g) Adding Virtual NIC: $VmNic"
     }
 
-    Write-Host "$(Get-Date -format g) Creating VM: $vmname on $vmhost"
-    Write-Host "$(Get-Date -format g) Adding VHD: $vhdpath\$vmname.vhdx"
-    Write-Host "$(Get-Date -format g) Adding Virtual NIC: $vmnic"
+    Write-Host "$(Get-Date -format g) Creating VM: $VmName on $VmHost"
+    Write-Host "$(Get-Date -format g) Adding VHD: $VhdPath\$VmName.vhdx"
+    Write-Host "$(Get-Date -format g) Adding Virtual NIC: $VmNic"
 
-    New-VM -name $vmname -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $vhdpath\$vmname.vhdx -NewVHDSizeBytes 130048MB -SwitchName $vmnic -ComputerName $vmhost
+    New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost
 
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -format g) Configuring VM Processor Count"
         Add-Content -Path $Log -Value "$(Get-Date -format g) Configuring VM Static Memory"
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Configuring VM to boot from $bootmedia"
+        Add-Content -Path $Log -Value "$(Get-Date -format g) Configuring VM to boot from $BootMedia"
     }
 
     Write-Host "$(Get-Date -format g) Configuring VM Processor Count"
     Write-Host "$(Get-Date -format g) Configuring VM Static Memory"
-    Write-Host "$(Get-Date -format g) Configuring VM to boot from $bootmedia"
+    Write-Host "$(Get-Date -format g) Configuring VM to boot from $BootMedia"
 
-    Set-VM $vmname -ProcessorCount 2 -StaticMemory -ComputerName $vmhost
-    Set-VMDvdDrive -VMName $vmname -ControllerNumber 1 -ControllerLocation 0 -Path $bootmedia -ComputerName $vmhost
+    Set-VM $VmName -ProcessorCount 2 -StaticMemory -ComputerName $VmHost
+    Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
 
     If ($LogPath)
     {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Starting $vmname on $vmhost with $id"
+        Add-Content -Path $Log -Value "$(Get-Date -format g) Starting $VmName on $VmHost with $Id"
     }
     
-    Write-Host "$(Get-Date -format g) Starting $vmname on $vmhost with $id"
+    Write-Host "$(Get-Date -format g) Starting $VmName on $VmHost with $Id"
 
-    Start-VM $vmname -ComputerName $vmhost
+    Start-VM $VmName -ComputerName $VmHost
 
-    # Wait for VM to stop
+    # Wait for VM to stop.
     If ($LogPath)
     {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Waiting for $vmname to build $id"
+        Add-Content -Path $Log -Value "$(Get-Date -format g) Waiting for $VmName to build $Id"
     }
 
-    Write-Host "$(Get-Date -format g) Waiting for $vmname to build $id"
+    Write-Host "$(Get-Date -format g) Waiting for $VmName to build $Id"
 
-    While ((Get-VM -Name $vmname -ComputerName $vmhost).state -ne 'Off') {Start-Sleep -s 5}
+    While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -s 5}
 
-    # Change config back
-    Set-VMDvdDrive -VMName $vmname -ControllerNumber 1 -ControllerLocation 0 -Path $null -ComputerName $vmhost
-    #Set-VM -Name $VMName -DynamicMemory -MemoryStartupBytes 1GB -MemoryMinimumBytes 100MB -MemoryMaximumBytes 4GB -ComputerName $vmhost
+    # Change config back.
+    Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $null -ComputerName $VmHost
+    #Set-VM -Name $VMName -DynamicMemory -MemoryStartupBytes 1GB -MemoryMinimumBytes 100MB -MemoryMaximumBytes 4GB -ComputerName $VmHost
 
-    # Restore MDT custom settings
+    # Restore MDT custom settings.
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -format g) Restoring MDT CustomSettings.ini from backup"
@@ -168,47 +170,52 @@ ForEach ($id in $tsid)
     
     Write-Host "$(Get-Date -format g) Restoring MDT CustomSettings.ini from backup"
 
-    Remove-Item $mdtdeploypath\Control\CustomSettings.ini
-    Move-Item $mdtdeploypath\Control\CustomSettings-backup.ini $mdtdeploypath\Control\CustomSettings.ini
+    Remove-Item $MdtDeployPath\Control\CustomSettings.ini
+    Move-Item $MdtDeployPath\Control\CustomSettings-backup.ini $MdtDeployPath\Control\CustomSettings.ini
     Start-Sleep -s 5
 }
 
 
-# If log was configured stop the log
+# If log was configured stop the log.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value ""
     Add-Content -Path $Log -Value "$(Get-Date -format g) Log finished"
     Add-Content -Path $Log -Value "****************************************"
 
-    # If email was configured, set the variables for the email subject and body
-    If ($smtpserver)
+    # If email was configured, set the variables for the email subject and body.
+    If ($SmtpServer)
     {
-        $mailsubject = "Lab: Image Factory Deploy Log"
-        $mailbody = Get-Content -Path $log | Out-String
-
-        # If an email password was configured, create a variable with the username and password
-        If ($smtppwd)
+        # If no subject is set, use the string below.
+        If ($Null -eq $MailSubject)
         {
-            $smtpcreds = New-Object System.Management.Automation.PSCredential -ArgumentList $smtpuser, $($smtppwd | ConvertTo-SecureString -AsPlainText -Force)
+            $MailSubject = "Image Factory Deploy"
+        }
 
-            # If ssl was configured, send the email with ssl
-            If ($usessl)
+        $MailBody = Get-Content -Path $Log | Out-String
+
+        # If an email password was configured, create a variable with the username and password.
+        If ($SmtpPwd)
+        {
+            $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList $SmtpUser, $($SmtpPwd | ConvertTo-SecureString -AsPlainText -Force)
+
+            # If ssl was configured, send the email with ssl.
+            If ($UseSsl)
             {
-                Send-MailMessage -To $mailto -From $mailfrom -Subject $mailsubject -Body $mailbody -SmtpServer $smtpserver -UseSsl -Credential $smtpcreds
+                Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -UseSsl -Credential $SmtpCreds
             }
 
-            # If ssl wasn't configured, send the email without ssl
+            # If ssl wasn't configured, send the email without ssl.
             Else
             {
-                Send-MailMessage -To $mailto -From $mailfrom -Subject $mailsubject -Body $mailbody -SmtpServer $smtpserver -Credential $smtpcreds
+                Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Credential $SmtpCreds
             }
         }
 
-        # If an email username and password were not configured, send the email without authentication
+        # If an email username and password were not configured, send the email without authentication.
         Else
         {
-            Send-MailMessage -To $mailto -From $mailfrom -Subject $mailsubject -Body $mailbody -SmtpServer $smtpserver
+            Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer
         }
     }
 }

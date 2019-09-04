@@ -1,12 +1,12 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2.8
+.VERSION 2.9
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
 .AUTHOR Mike Galvin twitter.com/mikegalvin_
 
-.COMPANYNAME
+.COMPANYNAME Mike Galvin
 
 .COPYRIGHT (C) Mike Galvin. All rights reserved.
 
@@ -66,19 +66,19 @@
     .PARAMETER Deploy
     The local or UNC path to the deploy share of MDT. Both this and the build switch can point to the same location.
 
-    .PARAMETER ts
+    .PARAMETER TS
     The comma-separated list of task sequence ID's to build.
 
-    .PARAMETER vh
+    .PARAMETER VH
     The name of the computer running Hyper-V. Can be local or remote.
 
-    .PARAMETER vhd
+    .PARAMETER VHD
     The path relative to the Hyper-V server of where to store the VHD file for the VM(s).
 
     .PARAMETER Boot
     The path relative to the Hyper-V server of where the ISO file to boot from is stored.
 
-    .PARAMETER vnic
+    .PARAMETER VNic
     The name of the virtual switch that the VM should use to communicate with the network.
 
     .PARAMETER Compat
@@ -92,6 +92,9 @@
     .PARAMETER L
     The path to output the log file to.
     The file name will be Image-Factory-YYYY-MM-dd-HH-mm-ss.log
+
+    .PARAMETER Subject
+    The email subject that the email should have. Encapulate with single or double quotes.
 
     .PARAMETER SendTo
     The e-mail address the log should be sent to.
@@ -112,14 +115,14 @@
     Connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -vh hyperv01 -vhd C:\Hyper-V\VHD
-    -Boot C:\iso\LiteTouchPE_x64.iso -vnic vSwitch-Ext -Remote -ts W10-1803,WS16-S -L C:\scripts\logs
-    -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
+    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -VH hyperv01 -VHD C:\Hyper-V\VHD
+    -Boot C:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -TS W10-1803,WS16-S -L C:\scripts\logs
+    -Subject 'Server: Image Factory' -SendTo me@contoso.com -From hyperv@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
 
     This string will build a WIM file from each of the task sequences; W10-1803 & WS16-S. They will be imported to the deployment share on MDT01.
     The Hyper-V server used will be HYPERV01, the VHD for the VMs generated will be stored in C:\Hyper-V\VHD on the server HYPERV01.
     The boot iso file will be C:\iso\LiteTouchPE_x64.iso, located on the Hyper-V server. The Virtual Switch used by the VM will be called vSwitch-Ext.
-    The log file will be output to C:\scripts\logs and it will be emailed using an SSL conection.
+    The log file will be output to C:\scripts\logs and it will be e-mailed with a custom subject line, using an SSL conection.
 #>
 
 ## Set up command line switches and what variables they map to.
@@ -132,22 +135,24 @@ Param(
     [alias("Deploy")]
     $MdtDeployPath,
     [parameter(Mandatory=$True)]
-    [alias("ts")]
+    [alias("TS")]
     $TsId,
     [parameter(Mandatory=$True)]
-    [alias("vh")]
+    [alias("VH")]
     $VmHost,
     [parameter(Mandatory=$True)]
-    [alias("vhd")]
+    [alias("VHD")]
     $VhdPath,
     [parameter(Mandatory=$True)]
     [alias("Boot")]
     $BootMedia,
     [parameter(Mandatory=$True)]
-    [alias("vnic")]
+    [alias("VNic")]
     $VmNic,
     [alias("L")]
     $LogPath,
+    [alias("Subject")]
+    $MailSubject,
     [alias("SendTo")]
     $MailTo,
     [alias("From")]
@@ -374,20 +379,20 @@ Write-Host "$(Get-Date -Format G) Creating PSDrive to $MdtDeployPath"
 ## Create PSDrive to the MDT deploy path.
 New-PSDrive -Name "DS002" -PSProvider MDTProvider -Root $MdtDeployPath
 
-## Get the WIM files and store them in a variable
+## Get the WIM files and store them in a variable.
 $Wims = Get-ChildItem $MdtBuildPath\Captures\*.wim
 
 ## For each of the WIMs, import them into MDT.
-ForEach ($file in $Wims)
+ForEach ($File in $Wims)
 {
     If ($LogPath)
     {
-        Add-Content -Path $Log -Value "$(Get-Date -Format G) Importing WIM File: $file"
+        Add-Content -Path $Log -Value "$(Get-Date -Format G) Importing WIM File: $File"
     }
 
-    Write-Host "$(Get-Date -Format G) Importing WIM File: $file"
+    Write-Host "$(Get-Date -Format G) Importing WIM File: $File"
 
-    Import-MDTOperatingSystem -path "DS002:\Operating Systems" -SourceFile $file -DestinationFolder $file.Name
+    Import-MDTOperatingSystem -path "DS002:\Operating Systems" -SourceFile $File -DestinationFolder $File.Name
 }
 
 If ($LogPath)
@@ -400,39 +405,44 @@ Write-Host "$(Get-Date -Format G) Removing captured WIM files"
 ## Remove captured WIMs.
 Remove-Item $MdtBuildPath\Captures\*.wim
 
-## If log was configured stop the log
+## If log was configured stop the log.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value ""
     Add-Content -Path $Log -Value "$(Get-Date -Format G) Log finished"
     Add-Content -Path $Log -Value "****************************************"
 
-    ## If email was configured, set the variables for the email subject and body
+    ## If email was configured, set the variables for the email subject and body.
     If ($SmtpServer)
     {
-        $MailSubject = "Image Factory Log"
+        # If no subject is set, use the string below.
+        If ($Null -eq $MailSubject)
+        {
+            $MailSubject = "Image Factory Log"
+        }
+
         $MailBody = Get-Content -Path $Log | Out-String
 
-        ## If an email password was configured, create a variable with the username and password
+        ## If an email password was configured, create a variable with the username and password.
         If ($SmtpPwd)
         {
             $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
             $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
 
-            ## If ssl was configured, send the email with ssl
+            ## If ssl was configured, send the email with ssl.
             If ($UseSsl)
             {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -UseSsl -Credential $SmtpCreds
             }
 
-            ## If ssl wasn't configured, send the email without ssl
+            ## If ssl wasn't configured, send the email without ssl.
             Else
             {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Credential $SmtpCreds
             }
         }
 
-        ## If an email username and password were not configured, send the email without authentication
+        ## If an email username and password were not configured, send the email without authentication.
         Else
         {
             Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer
