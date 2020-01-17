@@ -1,9 +1,9 @@
 ﻿# ----------------------------------------------------------------------------
 # Script: Image Factory Deploy
-# Version: 2.5
+# Version: 2.6
 # Author: Mike Galvin
 # Contact: mike@gal.vin or twitter.com/mikegalvin_
-# Date: 2019-09-04
+# Date: 2020-01-17
 # ----------------------------------------------------------------------------
 
 [CmdletBinding()]
@@ -47,7 +47,7 @@ Param(
 # If logging is configured, start log.
 If ($LogPath) 
 {
-    $LogFile = "Image-Factory-Deploy.log"
+    $LogFile = ("Image-Factory-Deploy-{0:yyyy-MM-dd-HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
     $LogT = Test-Path -Path $Log
 
@@ -93,6 +93,7 @@ ForEach ($Id in $TsId)
         Add-Content -Path $Log -Value "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
     }
     
+    Write-Host "$(Get-Date -format g) ###### Starting Task Sequence ID: $Id ######"
     Write-Host "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
 
     Copy-Item $MdtDeployPath\Control\CustomSettings.ini $MdtDeployPath\Control\CustomSettings-backup.ini
@@ -169,6 +170,7 @@ ForEach ($Id in $TsId)
     }
     
     Write-Host "$(Get-Date -format g) Restoring MDT CustomSettings.ini from backup"
+    Write-Host "$(Get-Date -format g) ###### End of Task Sequence ID: $Id ######"
 
     Remove-Item $MdtDeployPath\Control\CustomSettings.ini
     Move-Item $MdtDeployPath\Control\CustomSettings-backup.ini $MdtDeployPath\Control\CustomSettings.ini
