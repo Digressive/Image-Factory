@@ -125,7 +125,7 @@
     The log file will be output to C:\scripts\logs and it will be e-mailed with a custom subject line, using an SSL conection.
 #>
 
-## Set up command line switches and what variables they map to.
+## Configuring options.
 [CmdletBinding()]
 Param(
     [parameter(Mandatory=$True)]
@@ -167,13 +167,12 @@ Param(
     [switch]$Compat,
     [switch]$Remote)
 
-## If logging is configured, start the log file.
+## If logging is configured and one already exists, clear it and start a new log.
 If ($LogPath)
 {
     $LogFile = ("Image-Factory-{0:yyyy-MM-dd-HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
 
-    ## If the log file already exists, clear it.
     $LogT = Test-Path -Path $Log
 
     If ($LogT)
@@ -186,7 +185,7 @@ If ($LogPath)
     Add-Content -Path $Log -Value ""
 }
 
-## If compat is configured, load the older Hyper-V PS module.
+## If the -compat switch is used, load the older Hyper-V PS module.
 If ($Compat) 
 {
     If ($LogPath)
@@ -198,7 +197,7 @@ If ($Compat)
     Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
 }
 
-## Import MDT PS module.
+## Import the Deployment Toolkit PowerShell module.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value "$(Get-Date -Format G) Importing MDT PowerShell Module"
@@ -210,7 +209,7 @@ Import-Module "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeplo
 ## For each of the Task Sequence ID's configured, run the build process.
 ForEach ($Id in $TsId)
 {
-    ## Test to see if the build environment is dirty, if it is exit the script.
+    ## Test to see if the build environment is dirty from another run, if it is exit the script.
     $EnvDirtyTest = Test-Path -Path $MdtBuildPath\Control\CustomSettings-backup.ini
     If ($EnvDirtyTest)
     {
@@ -259,7 +258,7 @@ ForEach ($Id in $TsId)
     Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipTaskSequence=YES"
     Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipComputerName=YES"
 
-    ## Set the VM name in Hyper-V.
+    ## Set the VM name as build + the date and time.
     $VmName = ("build-{0:yyyy-MM-dd-HH-mm-ss}" -f (Get-Date))
 
     If ($LogPath)
@@ -273,7 +272,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -Format G) Adding VHD: $VhdPath\$VmName.vhdx"
     Write-Host "$(Get-Date -Format G) Adding Virtual NIC: $VmNic"
 
-    ## Create the VM.
+    ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
     New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost
 
     If ($LogPath)
@@ -287,7 +286,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -Format G) Configuring VM Static Memory"
     Write-Host "$(Get-Date -Format G) Configuring VM to boot from $BootMedia"
 
-    ## Configure the VM.
+    ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints. Finally, set the boot CD to the configured ISO.
     Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
     Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
 
@@ -301,7 +300,6 @@ ForEach ($Id in $TsId)
     ## Start the VM.
     Start-VM $VmName -ComputerName $VmHost
 
-    ## Wait for VM to shutdown.
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -Format G) Waiting for $VmName to build $Id"
@@ -309,9 +307,11 @@ ForEach ($Id in $TsId)
 
     Write-Host "$(Get-Date -Format G) Waiting for $VmName to build $Id"
 
+    ## Wait until the VM is turned off.
     While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -s 10}
 
-    ## Remove VMs VHD if Remote option is set or not.
+    ## If -remote switch is set, remove the VMs VHD's from the remote server.
+    ## If switch is not set, the VM's VHDs are removed from the local computer.
     If ($Remote)
     {
         $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
@@ -343,7 +343,7 @@ ForEach ($Id in $TsId)
         Start-Sleep -s 5
     }
 
-    ## Remove VM.
+    ## Delete the VM.
     Remove-VM $VmName -ComputerName $VmHost -Force
 
     If ($LogPath)
@@ -353,7 +353,7 @@ ForEach ($Id in $TsId)
 
     Write-Host "$(Get-Date -Format G) Restoring MDT CustomSettings.ini from backup"
 
-    ## Restore the CustomSettings.ini file from the backup.
+    ## Restore CustomSettings.ini from the backup.
     Remove-Item $MdtBuildPath\Control\CustomSettings.ini
     Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
     Start-Sleep -s 5
@@ -368,7 +368,6 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -Format G) Finished process for $Id"
 }
 
-## Connect to MDT.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value "$(Get-Date -Format G) Creating PSDrive to $MdtDeployPath"
@@ -376,13 +375,12 @@ If ($LogPath)
 
 Write-Host "$(Get-Date -Format G) Creating PSDrive to $MdtDeployPath"
 
-## Create PSDrive to the MDT deploy path.
+## Create a new PSDrive to the configured MDT deploy path.
 New-PSDrive -Name "DS002" -PSProvider MDTProvider -Root $MdtDeployPath
 
-## Get the WIM files and store them in a variable.
 $Wims = Get-ChildItem $MdtBuildPath\Captures\*.wim
 
-## For each of the WIMs, import them into MDT.
+## For each of the the WIM files in the captures folder of the build share, import them into the MDT Operating Systems folder.
 ForEach ($File in $Wims)
 {
     If ($LogPath)
@@ -402,47 +400,49 @@ If ($LogPath)
 
 Write-Host "$(Get-Date -Format G) Removing captured WIM files"
 
-## Remove captured WIMs.
+## Delete all of the WIM files in the captures folder of the build share.
 Remove-Item $MdtBuildPath\Captures\*.wim
 
-## If log was configured stop the log.
+## If logging is configured then finish the log file.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value ""
     Add-Content -Path $Log -Value "$(Get-Date -Format G) Log finished"
     Add-Content -Path $Log -Value "****************************************"
 
-    ## If email was configured, set the variables for the email subject and body.
+    ## This whole block is for e-mail, if it is configured.
     If ($SmtpServer)
     {
-        # If no subject is set, use the string below.
+        
+        ## Default e-mail subject if none is configured.
         If ($Null -eq $MailSubject)
         {
             $MailSubject = "Image Factory Log"
         }
 
+        ## Setting the contents of the log to be the e-mail body. 
         $MailBody = Get-Content -Path $Log | Out-String
 
-        ## If an email password was configured, create a variable with the username and password.
+        ## If an smtp password is configured, get the username and password together for authentication.
+        ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
         If ($SmtpPwd)
         {
             $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
             $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
 
-            ## If ssl was configured, send the email with ssl.
+            ## If -ssl switch is used, send the email with SSL.
+            ## If it isn't then don't use SSL, but still authenticate with the credentials.
             If ($UseSsl)
             {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -UseSsl -Credential $SmtpCreds
             }
 
-            ## If ssl wasn't configured, send the email without ssl.
             Else
             {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Credential $SmtpCreds
             }
         }
 
-        ## If an email username and password were not configured, send the email without authentication.
         Else
         {
             Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer

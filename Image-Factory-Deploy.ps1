@@ -3,9 +3,10 @@
 # Version: 2.6
 # Author: Mike Galvin
 # Contact: mike@gal.vin or twitter.com/mikegalvin_
-# Date: 2020-01-17
+# Date: 2020-02-01
 ###########################################################
 
+## Configuring options.
 [CmdletBinding()]
 Param(
     [parameter(Mandatory=$true)]
@@ -44,14 +45,14 @@ Param(
     [switch]$Compat,
     [switch]$Remote)
 
-# If logging is configured, start log.
+## If logging is configured and one already exists, clear it and start a new log.
 If ($LogPath) 
 {
     $LogFile = ("Image-Factory-Deploy-{0:yyyy-MM-dd-HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
+
     $LogT = Test-Path -Path $Log
 
-# If the log file already exists, clear it.
     If ($LogT)
     {
         Clear-Content -Path $Log
@@ -62,7 +63,7 @@ If ($LogPath)
     Add-Content -Path $Log -Value ""
 }
 
-# If compat is configured, load the older Hyper-V PS module.
+## If the -compat switch is used, load the older Hyper-V PS module.
 If ($Compat)
 {
     If ($LogPath)
@@ -74,7 +75,6 @@ If ($Compat)
     Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
 }
 
-# Import MDT PS module.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value "$(Get-Date -format g) Importing MDT PowerShell Module"
@@ -82,12 +82,13 @@ If ($LogPath)
 
 Write-Host "$(Get-Date -format g) Importing MDT PowerShell Module"
 
+## Import the MDT PowerShell module.
 $Mdt = "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
 Import-Module $Mdt
 
+## For each of the Task Sequence ID's configured, run the process.
 ForEach ($Id in $TsId)
 {
-    # Setup MDT custom settings for VM auto deploy.
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
@@ -96,6 +97,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -format g) ###### Starting Task Sequence ID: $Id ######"
     Write-Host "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
 
+    ## Backup the exisiting CustomSettings.ini.
     Copy-Item $MdtDeployPath\Control\CustomSettings.ini $MdtDeployPath\Control\CustomSettings-backup.ini
     Start-Sleep -s 5
 
@@ -106,11 +108,14 @@ ForEach ($Id in $TsId)
 
     Write-Host "$(Get-Date -format g) Setting MDT CustomSettings.ini for Task Sequence ID: $Id"
 
+    ## Setup MDT CustomSettings.ini for auto deploy.
+    Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
+    Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
     Add-Content $MdtDeployPath\Control\CustomSettings.ini "TaskSequenceID=$Id"
     Add-Content $MdtDeployPath\Control\CustomSettings.ini "SkipTaskSequence=YES"
     Add-Content $MdtDeployPath\Control\CustomSettings.ini "SkipComputerName=YES"
 
-    # Create VM.
+    ## Set the VM name as the Task Sequence ID.
     $VmName = $Id
 
     If ($LogPath)
@@ -124,6 +129,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -format g) Adding VHD: $VhdPath\$VmName.vhdx"
     Write-Host "$(Get-Date -format g) Adding Virtual NIC: $VmNic"
 
+    ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
     New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost
 
     If ($LogPath)
@@ -137,6 +143,7 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -format g) Configuring VM Static Memory"
     Write-Host "$(Get-Date -format g) Configuring VM to boot from $BootMedia"
 
+    ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints. Finally, set the boot CD to the configured ISO.
     Set-VM $VmName -ProcessorCount 2 -StaticMemory -ComputerName $VmHost
     Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
 
@@ -147,9 +154,9 @@ ForEach ($Id in $TsId)
     
     Write-Host "$(Get-Date -format g) Starting $VmName on $VmHost with $Id"
 
+    ## Start the VM.
     Start-VM $VmName -ComputerName $VmHost
 
-    # Wait for VM to stop.
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -format g) Waiting for $VmName to build $Id"
@@ -157,13 +164,12 @@ ForEach ($Id in $TsId)
 
     Write-Host "$(Get-Date -format g) Waiting for $VmName to build $Id"
 
+    ## Wait until the VM is turned off.
     While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -s 5}
 
-    # Change config back.
+    ## Change VM config to remove boot ISO.
     Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $null -ComputerName $VmHost
-    #Set-VM -Name $VMName -DynamicMemory -MemoryStartupBytes 1GB -MemoryMinimumBytes 100MB -MemoryMaximumBytes 4GB -ComputerName $VmHost
 
-    # Restore MDT custom settings.
     If ($LogPath)
     {
         Add-Content -Path $Log -Value "$(Get-Date -format g) Restoring MDT CustomSettings.ini from backup"
@@ -172,49 +178,51 @@ ForEach ($Id in $TsId)
     Write-Host "$(Get-Date -format g) Restoring MDT CustomSettings.ini from backup"
     Write-Host "$(Get-Date -format g) ###### End of Task Sequence ID: $Id ######"
 
+    ## Restore CustomSettings.ini from the backup.
     Remove-Item $MdtDeployPath\Control\CustomSettings.ini
     Move-Item $MdtDeployPath\Control\CustomSettings-backup.ini $MdtDeployPath\Control\CustomSettings.ini
     Start-Sleep -s 5
 }
 
-
-# If log was configured stop the log.
+## If logging is configured then finish the log file.
 If ($LogPath)
 {
     Add-Content -Path $Log -Value ""
     Add-Content -Path $Log -Value "$(Get-Date -format g) Log finished"
     Add-Content -Path $Log -Value "****************************************"
 
-    # If email was configured, set the variables for the email subject and body.
+    ## This whole block is for e-mail, if it is configured.
     If ($SmtpServer)
     {
-        # If no subject is set, use the string below.
+
+        ## Default e-mail subject if none is configured.
         If ($Null -eq $MailSubject)
         {
             $MailSubject = "Image Factory Deploy"
         }
 
+        ## Setting the contents of the log to be the e-mail body. 
         $MailBody = Get-Content -Path $Log | Out-String
 
-        # If an email password was configured, create a variable with the username and password.
+        ## If an smtp password is configured, get the username and password together for authentication.
+        ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
         If ($SmtpPwd)
         {
             $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList $SmtpUser, $($SmtpPwd | ConvertTo-SecureString -AsPlainText -Force)
 
-            # If ssl was configured, send the email with ssl.
+            ## If -ssl switch is used, send the email with SSL.
+            ## If it isn't then don't use SSL, but still authenticate with the credentials.
             If ($UseSsl)
             {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -UseSsl -Credential $SmtpCreds
             }
 
-            # If ssl wasn't configured, send the email without ssl.
             Else
             {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Credential $SmtpCreds
             }
         }
 
-        # If an email username and password were not configured, send the email without authentication.
         Else
         {
             Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer
