@@ -1,30 +1,131 @@
-﻿###########################################################
-# Script: Image Factory Deploy
-# Version: 2.6
-# Author: Mike Galvin
-# Contact: mike@gal.vin or twitter.com/mikegalvin_
-# Date: 2020-02-01
-###########################################################
+﻿<#PSScriptInfo
 
-## Configuring options.
+.VERSION 2020.02.24
+
+.GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
+
+.AUTHOR Mike Galvin Contact: mike@gal.vin / twitter.com/mikegalvin_
+
+.COMPANYNAME Mike Galvin
+
+.COPYRIGHT (C) Mike Galvin. All rights reserved.
+
+.TAGS Microsoft Deployment Toolkit MDT Hyper-V Windows OSD Testing
+
+.LICENSEURI
+
+.PROJECTURI https://gal.vin/2017/08/26/image-factory
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES Microsoft Deployment Toolkit PowerShell Modules Hyper-V Management PowerShell Modules
+
+.REQUIREDSCRIPTS
+
+.EXTERNALSCRIPTDEPENDENCIES
+
+.RELEASENOTES
+
+#>
+
+<#
+    .SYNOPSIS
+    Image Factory Utility (Deploy) - Automate testing of WIM files and task sequences.
+
+    .DESCRIPTION
+    This script will create Hyper-V virtual machines to test WIM files and Microsoft Deployment
+    Toolkit task sequences.
+
+    This script should be run on a device with the Hyper-V PowerShell management modules installed.
+
+    To send a log file via e-mail using ssl and an SMTP password you must generate an encrypted password file.
+    The password file is unique to both the user and machine.
+
+    To create the password file run this command as the user and on the machine that will use the file:
+
+    $creds = Get-Credential
+    $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
+
+    .PARAMETER Deploy
+    Location of the deployment share. It can be the same as the deployment share, and it can be a local or UNC path.
+
+    .PARAMETER VH
+    Name of the Hyper-V host. Can be a local or remote device.
+
+    .PARAMETER VHD
+    The path relative to the Hyper-V server of where to put the VHD file for the VM(s) that will be generated.
+
+    .PARAMETER Boot
+    The path relative to the Hyper-V server of where the ISO file is to boot from.
+
+    .PARAMETER VNic
+    Name of the virtual switch that the virtual machine should use to communicate with the network.
+    If the name of the switch contains a space encapsulate with single or double quotes.
+
+    .PARAMETER TS
+    The comma-separated list of task sequence ID's to build.
+
+    .PARAMETER NoBanner
+    Use this option to hide the ASCII art title in the console.
+
+    .PARAMETER L
+    The path to output the log file to.
+    The file name will be Image-Factory-Deploy_YYYY-MM-dd_HH-mm-ss.log.
+    Do not add a trailing \ backslash.
+
+    .PARAMETER Subject
+    The subject line for the e-mail log.
+    Encapsulate with single or double quotes.
+    If no subject is specified, the default of "Image Factory Utility Deploy Log" will be used.
+
+    .PARAMETER SendTo
+    The e-mail address the log should be sent to.
+
+    .PARAMETER From
+    The e-mail address the log should be sent from.
+
+    .PARAMETER Smtp
+    The DNS name or IP address of the SMTP server.
+
+    .PARAMETER User
+    The user account to authenticate to the SMTP server.
+
+    .PARAMETER Pwd
+    The txt file containing the encrypted password for SMTP authentication.
+
+    .PARAMETER UseSsl
+    Configures the utility to connect to the SMTP server using SSL.
+
+    .EXAMPLE
+    Image-Factory-Deploy.ps1 -Deploy \\mdt01\DeploymentShare$ -VH hyperv01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64-Deploy.iso
+    -VNic vSwitch-Ext -TS W10-1909,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory Deploy' -SendTo me@contoso.com
+    -From ImgFactoryDeploy@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
+
+    This configuration will build VMs from the task sequences W10-1909 and WS19-DC. The Hyper-V server used will be HYPERV01, the VHD for
+    the VMs generated will be stored in C:\Hyper-V\VHD on the server HYPERV01. The boot iso file will be C:\iso\LiteTouchPE_x64-Depoloy.iso,
+    located on the Hyper-V server. The virtual switch used by the VM will be called vSwitch-Ext. The log file will be output to
+    C:\scripts\logs and it will be e-mailed with a custom subject line, using an SSL conection.
+#>
+
+## Set up command line switches.
 [CmdletBinding()]
 Param(
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$True)]
     [alias("Deploy")]
     $MdtDeployPath,
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$True)]
     [alias("TS")]
     $TsId,
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$True)]
     [alias("VH")]
     $VmHost,
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$True)]
     [alias("VHD")]
     $VhdPath,
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$True)]
     [alias("Boot")]
     $BootMedia,
-    [parameter(Mandatory=$true)]
+    [parameter(Mandatory=$True)]
     [alias("VNic")]
     $VmNic,
     [alias("L")]
@@ -42,13 +143,29 @@ Param(
     [alias("Pwd")]
     $SmtpPwd,
     [switch]$UseSsl,
-    [switch]$Compat,
-    [switch]$Remote)
+    [switch]$NoBanner)
 
-## If logging is configured and one already exists, clear it and start a new log.
-If ($LogPath) 
+If ($NoBanner -eq $False)
 {
-    $LogFile = ("Image-Factory-Deploy-{0:yyyy-MM-dd-HH-mm-ss}.log" -f (Get-Date))
+    Write-Host -Object ""
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  .___                  ___________              __                         ____ ___   __  .__.__  .__  __            "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |   | _____    ____   \_   _____/____    _____/  |_  ___________ ___.__. |    |   \_/  |_|__|  | |__|/  |_ ___.__.  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |   |/     \  / ___\   |    __) \__  \ _/ ___\   __\/  _ \_  __ <   |  | |    |   /\   __\  |  | |  \   __<   |  |  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                  D  E  P  L  O  Y                                                    "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin                      Version 20.02.24 [:|]                             "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
+    Write-Host -Object ""
+}
+
+## If logging is configured, start logging.
+## If the log file already exists, clear it.
+If ($LogPath)
+{
+    $LogFile = ("Image-Factory-Deploy_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
 
     $LogT = Test-Path -Path $Log
@@ -58,147 +175,224 @@ If ($LogPath)
         Clear-Content -Path $Log
     }
 
-    Add-Content -Path $Log -Value "****************************************"
-    Add-Content -Path $Log -Value "$(Get-Date -format g) Log started"
-    Add-Content -Path $Log -Value ""
+    Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log started"
 }
 
-## If the -compat switch is used, load the older Hyper-V PS module.
-If ($Compat)
+## Function to get date in specific format.
+Function Get-DateFormat
 {
-    If ($LogPath)
+    Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+}
+
+## Function for logging.
+Function Write-Log($Type, $Event)
+{
+    If ($Type -eq "Info")
     {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Importing Hyper-V 1.1 PowerShell Module"
+        If ($Null -ne $LogPath)
+        {
+            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Event"
+        }
+        
+        Write-Host -Object "$(Get-DateFormat) [INFO] $Event"
     }
 
-    Write-Host "$(Get-Date -format g) Importing Hyper-V 1.1 PowerShell Module"
-    Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
+    If ($Type -eq "Succ")
+    {
+        If ($Null -ne $LogPath)
+        {
+            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Event"
+        }
+
+        Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Event"
+    }
+
+    If ($Type -eq "Err")
+    {
+        If ($Null -ne $LogPath)
+        {
+            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Event"
+        }
+
+        Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Event"
+    }
+
+    If ($Type -eq "Conf")
+    {
+        If ($Null -ne $LogPath)
+        {
+            Add-Content -Path $Log -Encoding ASCII -Value "$Event"
+        }
+
+        Write-Host -ForegroundColor Cyan -Object "$Event"
+    }
 }
 
-If ($LogPath)
+##
+## Display the current config and log if configured.
+##
+Write-Log -Type Conf -Event "************ Running with the following config *************."
+Write-Log -Type Conf -Event "Deploy share is:.......$MdtDeployPath."
+Write-Log -Type Conf -Event "TS ID's are:...........$TsId."
+Write-Log -Type Conf -Event "VM Host is:............$VmHost."
+Write-Log -Type Conf -Event "VHD path is:...........$VhdPath."
+Write-Log -Type Conf -Event "Boot media path is:....$BootMedia."
+Write-Log -Type Conf -Event "Virtual NIC name is:...$VmNic."
+
+If ($Null -ne $LogPath)
 {
-    Add-Content -Path $Log -Value "$(Get-Date -format g) Importing MDT PowerShell Module"
+    Write-Log -Type Conf -Event "Logs directory:........$LogPath."
 }
 
-Write-Host "$(Get-Date -format g) Importing MDT PowerShell Module"
+else {
+    Write-Log -Type Conf -Event "Logs directory:........No Config"
+}
 
-## Import the MDT PowerShell module.
-$Mdt = "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
-Import-Module $Mdt
+If ($MailTo)
+{
+    Write-Log -Type Conf -Event "E-mail log to:.........$MailTo."
+}
 
-## For each of the Task Sequence ID's configured, run the process.
+else {
+    Write-Log -Type Conf -Event "E-mail log to:.........No Config"
+}
+
+If ($MailFrom)
+{
+    Write-Log -Type Conf -Event "E-mail log from:.......$MailFrom."
+}
+
+else {
+    Write-Log -Type Conf -Event "E-mail log from:.......No Config"
+}
+
+If ($MailSubject)
+{
+    Write-Log -Type Conf -Event "E-mail subject:........$MailSubject."
+}
+
+else {
+    Write-Log -Type Conf -Event "E-mail subject:........Default"
+}
+
+If ($SmtpServer)
+{
+    Write-Log -Type Conf -Event "SMTP server is:........$SmtpServer."
+}
+
+else {
+    Write-Log -Type Conf -Event "SMTP server is:........No Config"
+}
+
+If ($SmtpUser)
+{
+    Write-Log -Type Conf -Event "SMTP user is:..........$SmtpUser."
+}
+
+else {
+    Write-Log -Type Conf -Event "SMTP user is:..........No Config"
+}
+
+If ($SmtpPwd)
+{
+    Write-Log -Type Conf -Event "SMTP pwd file:.........$SmtpPwd."
+}
+
+else {
+    Write-Log -Type Conf -Event "SMTP pwd file:.........No Config"
+}
+
+Write-Log -Type Conf -Event "-UseSSL switch is:.....$UseSsl."
+Write-Log -Type Conf -Event "************************************************************"
+Write-Log -Type Info -Event "Process started"
+##
+## Display current config ends here.
+##
+
+##
+## For each of the Task Sequence ID's configured, run the build process.
+##
 ForEach ($Id in $TsId)
 {
-    If ($LogPath)
+    ## Test to see if the build environment is dirty from another run, if it is exit the script.
+    $EnvDirtyTest = Test-Path -Path $MdtDeployPath\Control\CustomSettings-backup.ini
+    If ($EnvDirtyTest)
     {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
+        Write-Log -Type Err -Event "CustomSettings-backup.ini already exists."
+        Write-Log -Type Err -Event "The build environment is dirty."
+        Write-Log -Type Err -Event "Did the script finish successfully last time it was run?"
+        Exit
     }
-    
-    Write-Host "$(Get-Date -format g) ###### Starting Task Sequence ID: $Id ######"
-    Write-Host "$(Get-Date -format g) Backing up current MDT CustomSettings.ini"
 
-    ## Backup the exisiting CustomSettings.ini.
+    Write-Log -Type Info -Event "Start of Task Sequence ID: $Id"
+    Write-Log -Type Info -Event "(TSID: $Id) Backing up current MDT CustomSettings.ini"
+
+    ## Backup the existing CustomSettings.ini.
     Copy-Item $MdtDeployPath\Control\CustomSettings.ini $MdtDeployPath\Control\CustomSettings-backup.ini
-    Start-Sleep -s 5
+    Start-Sleep -Seconds 5
 
-    If ($LogPath)
-    {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Setting up MDT CustomSettings.ini for Task Sequence ID: $Id"
-    }
-
-    Write-Host "$(Get-Date -format g) Setting MDT CustomSettings.ini for Task Sequence ID: $Id"
+    Write-Log -Type Info -Event "(TSID: $Id) Setting MDT CustomSettings.ini for Task Sequence"
 
     ## Setup MDT CustomSettings.ini for auto deploy.
-    Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
-    Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
+    Add-Content $MdtDeployPath\Control\CustomSettings.ini ""
+    Add-Content $MdtDeployPath\Control\CustomSettings.ini ""
     Add-Content $MdtDeployPath\Control\CustomSettings.ini "TaskSequenceID=$Id"
     Add-Content $MdtDeployPath\Control\CustomSettings.ini "SkipTaskSequence=YES"
     Add-Content $MdtDeployPath\Control\CustomSettings.ini "SkipComputerName=YES"
 
-    ## Set the VM name as the Task Sequence ID.
-    $VmName = $Id
+    ## Set the VM name as build + the date and time.
+    $VmName = ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
 
-    If ($LogPath)
-    {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Creating VM: $VmName on $VmHost"
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Adding VHD: $VhdPath\$VmName.vhdx"
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Adding Virtual NIC: $VmNic"
-    }
-
-    Write-Host "$(Get-Date -format g) Creating VM: $VmName on $VmHost"
-    Write-Host "$(Get-Date -format g) Adding VHD: $VhdPath\$VmName.vhdx"
-    Write-Host "$(Get-Date -format g) Adding Virtual NIC: $VmNic"
+    Write-Log -Type Info -Event "(TSID: $Id) Creating VM: $VmName on $VmHost"
+    Write-Log -Type Info -Event "(TSID: $Id) Adding VHD: $VhdPath\$VmName.vhdx"
+    Write-Log -Type Info -Event "(TSID: $Id) Adding Virtual NIC: $VmNic"
 
     ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
-    New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost
+    New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost | Out-Null
 
-    If ($LogPath)
-    {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Configuring VM Processor Count"
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Configuring VM Static Memory"
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Configuring VM to boot from $BootMedia"
-    }
+    Write-Log -Type Info -Event "(TSID: $Id) Configuring VM Processor Count"
+    Write-Log -Type Info -Event "(TSID: $Id) Configuring VM Static Memory"
+    Write-Log -Type Info -Event "(TSID: $Id) Configuring VM to boot from $BootMedia"
 
-    Write-Host "$(Get-Date -format g) Configuring VM Processor Count"
-    Write-Host "$(Get-Date -format g) Configuring VM Static Memory"
-    Write-Host "$(Get-Date -format g) Configuring VM to boot from $BootMedia"
-
-    ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints. Finally, set the boot CD to the configured ISO.
-    Set-VM $VmName -ProcessorCount 2 -StaticMemory -ComputerName $VmHost
+    ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
+    ## Set the boot CD to the configured ISO.
+    ## Start the VM
+    Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
     Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
-
-    If ($LogPath)
-    {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Starting $VmName on $VmHost with $Id"
-    }
-    
-    Write-Host "$(Get-Date -format g) Starting $VmName on $VmHost with $Id"
-
-    ## Start the VM.
+    Write-Log -Type Info -Event "(TSID: $Id) Starting $VmName on $VmHost"
     Start-VM $VmName -ComputerName $VmHost
-
-    If ($LogPath)
-    {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Waiting for $VmName to build $Id"
-    }
-
-    Write-Host "$(Get-Date -format g) Waiting for $VmName to build $Id"
+    Write-Log -Type Info -Event "(TSID: $Id) Waiting for $VmName to shutdown"
 
     ## Wait until the VM is turned off.
-    While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -s 5}
+    While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
 
     ## Change VM config to remove boot ISO.
     Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $null -ComputerName $VmHost
 
-    If ($LogPath)
-    {
-        Add-Content -Path $Log -Value "$(Get-Date -format g) Restoring MDT CustomSettings.ini from backup"
-    }
-    
-    Write-Host "$(Get-Date -format g) Restoring MDT CustomSettings.ini from backup"
-    Write-Host "$(Get-Date -format g) ###### End of Task Sequence ID: $Id ######"
-
     ## Restore CustomSettings.ini from the backup.
+    Write-Log -Type Info -Event "(TSID: $Id) Restoring MDT CustomSettings.ini from backup"
     Remove-Item $MdtDeployPath\Control\CustomSettings.ini
     Move-Item $MdtDeployPath\Control\CustomSettings-backup.ini $MdtDeployPath\Control\CustomSettings.ini
-    Start-Sleep -s 5
+    Write-Log -Type Info -Event "End of Task Sequence ID: $Id"
 }
+##
+## End of the deploy process for TS's
+##
+
+Write-Log -Type Info -Event "Process finished"
 
 ## If logging is configured then finish the log file.
 If ($LogPath)
 {
-    Add-Content -Path $Log -Value ""
-    Add-Content -Path $Log -Value "$(Get-Date -format g) Log finished"
-    Add-Content -Path $Log -Value "****************************************"
+    Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log finished"
 
     ## This whole block is for e-mail, if it is configured.
     If ($SmtpServer)
     {
-
         ## Default e-mail subject if none is configured.
         If ($Null -eq $MailSubject)
         {
-            $MailSubject = "Image Factory Deploy"
+            $MailSubject = "Image Factory Utility Deploy Log"
         }
 
         ## Setting the contents of the log to be the e-mail body. 
@@ -208,7 +402,8 @@ If ($LogPath)
         ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
         If ($SmtpPwd)
         {
-            $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList $SmtpUser, $($SmtpPwd | ConvertTo-SecureString -AsPlainText -Force)
+            $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
+            $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
 
             ## If -ssl switch is used, send the email with SSL.
             ## If it isn't then don't use SSL, but still authenticate with the credentials.
@@ -217,17 +412,15 @@ If ($LogPath)
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -UseSsl -Credential $SmtpCreds
             }
 
-            Else
-            {
+            else {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Credential $SmtpCreds
             }
         }
 
-        Else
-        {
+        else {
             Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer
         }
     }
 }
 
-# End
+## End
