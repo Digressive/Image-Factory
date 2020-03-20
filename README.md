@@ -10,7 +10,7 @@ Automate Creation of WIM Files
 |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|
           \//_____/        \/        \/     \/                   \/                                        \/
 
-             Mike Galvin    https://gal.vin      Version 20.02.24 [:|]
+             Mike Galvin    https://gal.vin      Version 20.03.20
 ```
 
 For full instructions and documentation, [visit my site.](https://gal.vin/2017/08/26/image-factory/)
@@ -81,8 +81,8 @@ Here’s a list of all the command line switches and example configurations.
 
 | Command Line Switch | Description | Example |
 | ------------------- | ----------- | ------- |
-| -Build | Location of the build share. It can be the same as the deployment share, and it can be a local or UNC path. | \\server\buildshare$ OR C:\BuildShare |
-| -Deploy | Location of the deployment share. It can be the same as the deployment share, and it can be a local or UNC path. | \\server\deploymentshare$ OR C:\DeploymentShare |
+| -Build | Location of the build share. It can be the same as the deployment share, and it can be a local or UNC path. | \\\server\buildshare$ OR C:\BuildShare |
+| -Deploy | Location of the deployment share. It can be the same as the deployment share, and it can be a local or UNC path. | \\\server\deploymentshare$ OR C:\DeploymentShare |
 | -Vh | Name of the Hyper-V host. Can be a local or remote device. | VS01 |
 | -Vhd | The path relative to the Hyper-V server of where to put the VHD file for the VM(s) that will be generated. | C:\Hyper-V\VHD |
 | -Boot | The path relative to the Hyper-V server of where the ISO file is to boot from. | C:\iso\LiteTouchPE_x64.iso |

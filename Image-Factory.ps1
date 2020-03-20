@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 2020.02.24
+.VERSION 20.03.20
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -18,7 +18,7 @@
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES Microsoft Deployment Toolkit PowerShell Modules Hyper-V Management PowerShell Modules
+.EXTERNALMODULEDEPENDENCIES
 
 .REQUIREDSCRIPTS
 
@@ -144,6 +144,7 @@ Param(
     [alias("VNic")]
     $VmNic,
     [alias("L")]
+    [ValidateScript({Test-Path $_ -PathType 'Container'})]
     $LogPath,
     [alias("Subject")]
     $MailSubject,
@@ -156,6 +157,7 @@ Param(
     [alias("User")]
     $SmtpUser,
     [alias("Pwd")]
+    [ValidateScript({Test-Path -Path $_ -PathType Leaf})]
     $SmtpPwd,
     [switch]$UseSsl,
     [switch]$Compat,
@@ -173,7 +175,7 @@ Param(
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 20.02.24 [:|]                                             "
+        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 20.03.20                                                  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
         Write-Host -Object ""
     }
