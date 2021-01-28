@@ -13,7 +13,7 @@ Automate Creation of WIM Files
              Mike Galvin    https://gal.vin      Version 20.03.20
 ```
 
-For full instructions and documentation, [visit my site.](https://gal.vin/2017/08/26/image-factory/)
+For full instructions and documentation, [visit my site.](https://gal.vin/posts/image-factory/)
 
 A demonstration video is available on [my YouTube channel.](https://youtu.be/BdNwWwxo7Ug)
 
