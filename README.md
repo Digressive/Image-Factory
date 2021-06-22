@@ -10,7 +10,7 @@ Automate Creation of WIM Files
 |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|
           \//_____/        \/        \/     \/                   \/                                        \/
 
-             Mike Galvin    https://gal.vin      Version 20.03.20
+             Mike Galvin    https://gal.vin      Version 21.06.22
 ```
 
 For full instructions and documentation, [visit my site.](https://gal.vin/posts/image-factory/)

@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 20.03.20
+.VERSION 21.06.22
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -175,7 +175,7 @@ Param(
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 20.03.20                                                  "
+        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.06.22                                                  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
         Write-Host -Object ""
     }
@@ -204,171 +204,178 @@ Function Get-DateFormat
 }
 
 ## Function for logging.
-Function Write-Log($Type, $Event)
+Function Write-Log($Type, $Evt)
 {
     If ($Type -eq "Info")
     {
         If ($Null -ne $LogPath)
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Event"
+            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Evt"
         }
         
-        Write-Host -Object "$(Get-DateFormat) [INFO] $Event"
+        Write-Host -Object "$(Get-DateFormat) [INFO] $Evt"
     }
 
     If ($Type -eq "Succ")
     {
         If ($Null -ne $LogPath)
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Event"
+            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Evt"
         }
 
-        Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Event"
+        Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Evt"
     }
 
     If ($Type -eq "Err")
     {
         If ($Null -ne $LogPath)
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Event"
+            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Evt"
         }
 
-        Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Event"
+        Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Evt"
     }
 
     If ($Type -eq "Conf")
     {
         If ($Null -ne $LogPath)
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$Event"
+            Add-Content -Path $Log -Encoding ASCII -Value "$Evt"
         }
 
-        Write-Host -ForegroundColor Cyan -Object "$Event"
+        Write-Host -ForegroundColor Cyan -Object "$Evt"
     }
 }
 
 ##
 ## Display the current config and log if configured.
 ##
-Write-Log -Type Conf -Event "************ Running with the following config *************."
-Write-Log -Type Conf -Event "Build share is:........$MdtBuildPath."
-Write-Log -Type Conf -Event "Deploy share is:.......$MdtDeployPath."
-Write-Log -Type Conf -Event "TS ID's are:...........$TsId."
-Write-Log -Type Conf -Event "VM Host is:............$VmHost."
-Write-Log -Type Conf -Event "VHD path is:...........$VhdPath."
-Write-Log -Type Conf -Event "Boot media path is:....$BootMedia."
-Write-Log -Type Conf -Event "Virtual NIC name is:...$VmNic."
+Write-Log -Type Conf -Evt "************ Running with the following config *************."
+Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPath."
+Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
+Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
+Write-Log -Type Conf -Evt "TS ID's:...............$TsId."
+Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
+Write-Log -Type Conf -Evt "VHD path:..............$VhdPath."
+Write-Log -Type Conf -Evt "Boot media path:.......$BootMedia."
+Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
 
 If ($Null -ne $LogPath)
 {
-    Write-Log -Type Conf -Event "Logs directory:........$LogPath."
+    Write-Log -Type Conf -Evt "Logs directory:........$LogPath."
 }
 
 else {
-    Write-Log -Type Conf -Event "Logs directory:........No Config"
+    Write-Log -Type Conf -Evt "Logs directory:........No Config"
 }
 
 If ($MailTo)
 {
-    Write-Log -Type Conf -Event "E-mail log to:.........$MailTo."
+    Write-Log -Type Conf -Evt "E-mail log to:.........$MailTo."
 }
 
 else {
-    Write-Log -Type Conf -Event "E-mail log to:.........No Config"
+    Write-Log -Type Conf -Evt "E-mail log to:.........No Config"
 }
 
 If ($MailFrom)
 {
-    Write-Log -Type Conf -Event "E-mail log from:.......$MailFrom."
+    Write-Log -Type Conf -Evt "E-mail log from:.......$MailFrom."
 }
 
 else {
-    Write-Log -Type Conf -Event "E-mail log from:.......No Config"
+    Write-Log -Type Conf -Evt "E-mail log from:.......No Config"
 }
 
 If ($MailSubject)
 {
-    Write-Log -Type Conf -Event "E-mail subject:........$MailSubject."
+    Write-Log -Type Conf -Evt "E-mail subject:........$MailSubject."
 }
 
 else {
-    Write-Log -Type Conf -Event "E-mail subject:........Default"
+    Write-Log -Type Conf -Evt "E-mail subject:........Default"
 }
 
 If ($SmtpServer)
 {
-    Write-Log -Type Conf -Event "SMTP server is:........$SmtpServer."
+    Write-Log -Type Conf -Evt "SMTP server:...........$SmtpServer."
 }
 
 else {
-    Write-Log -Type Conf -Event "SMTP server is:........No Config"
+    Write-Log -Type Conf -Evt "SMTP server:...........No Config"
 }
 
 If ($SmtpUser)
 {
-    Write-Log -Type Conf -Event "SMTP user is:..........$SmtpUser."
+    Write-Log -Type Conf -Evt "SMTP user:.............$SmtpUser."
 }
 
 else {
-    Write-Log -Type Conf -Event "SMTP user is:..........No Config"
+    Write-Log -Type Conf -Evt "SMTP user:.............No Config"
 }
 
 If ($SmtpPwd)
 {
-    Write-Log -Type Conf -Event "SMTP pwd file:.........$SmtpPwd."
+    Write-Log -Type Conf -Evt "SMTP pwd file:.........$SmtpPwd."
 }
 
 else {
-    Write-Log -Type Conf -Event "SMTP pwd file:.........No Config"
+    Write-Log -Type Conf -Evt "SMTP pwd file:.........No Config"
 }
 
-Write-Log -Type Conf -Event "-UseSSL switch is:.....$UseSsl."
-Write-Log -Type Conf -Event "-Compat switch is:.....$Compat."
-Write-Log -Type Conf -Event "-Remote switch is:.....$Remote."
-Write-Log -Type Conf -Event "************************************************************"
-Write-Log -Type Info -Event "Process started"
+Write-Log -Type Conf -Evt "-UseSSL switch:........$UseSsl."
+Write-Log -Type Conf -Evt "-Compat switch:........$Compat."
+Write-Log -Type Conf -Evt "-Remote switch:........$Remote."
+Write-Log -Type Conf -Evt "************************************************************"
+Write-Log -Type Info -Evt "Process started"
 ##
 ## Display current config ends here.
 ##
 
 ## If the -compat switch is used, load the older Hyper-V PS module.
-If ($Compat) 
+If ($Compat)
 {
-    Write-Log -Type Info -Event "Importing Hyper-V 1.1 PowerShell Module"
+    Write-Log -Type Info -Evt "Importing Hyper-V 1.1 PowerShell Module"
     Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
 }
 
 ## Import the Deployment Toolkit PowerShell module.
-Write-Log -Type Info -Event "Importing MDT PowerShell Module"
+Write-Log -Type Info -Evt "Importing MDT PowerShell Module"
 Import-Module "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
 
 ## Create a new PSDrive to the configured MDT deploy path.
-Write-Log -Type Info -Event "Creating PSDrive to $MdtDeployPath"
+Write-Log -Type Info -Evt "Creating PSDrive to $MdtDeployPath"
 New-PSDrive -Name "ImgFacDeploy" -PSProvider MDTProvider -Root $MdtDeployPath | Out-Null
+
+## For Progress bar
+$i = 0
 
 ##
 ## For each of the Task Sequence ID's configured, run the build process.
 ##
 ForEach ($Id in $TsId)
 {
+    ## Progress Bar based on progress through the TS ID's
+    Write-Progress -Id 0 -Activity "Processing" -Status "Current TSID: $Id" -PercentComplete ($i/$TsId.count*100)
+
     ## Test to see if the build environment is dirty from another run, if it is exit the script.
     $EnvDirtyTest = Test-Path -Path $MdtBuildPath\Control\CustomSettings-backup.ini
     If ($EnvDirtyTest)
     {
-        Write-Log -Type Err -Event "CustomSettings-backup.ini already exists."
-        Write-Log -Type Err -Event "The build environment is dirty."
-        Write-Log -Type Err -Event "Did the script finish successfully last time it was run?"
+        Write-Log -Type Err -Evt "CustomSettings-backup.ini already exists."
+        Write-Log -Type Err -Evt "The build environment is dirty."
+        Write-Log -Type Err -Evt "Did the script finish successfully last time it was run?"
         Exit
     }
 
-    Write-Log -Type Info -Event "Start of Task Sequence ID: $Id"
-    Write-Log -Type Info -Event "(TSID: $Id) Backing up current MDT CustomSettings.ini"
+    Write-Log -Type Info -Evt "Start of Task Sequence ID: $Id"
+    Write-Log -Type Info -Evt "(TSID: $Id) Backing up current MDT CustomSettings.ini"
 
     ## Backup the existing CustomSettings.ini.
     Copy-Item $MdtBuildPath\Control\CustomSettings.ini $MdtBuildPath\Control\CustomSettings-backup.ini
     Start-Sleep -Seconds 5
 
-    Write-Log -Type Info -Event "(TSID: $Id) Setting MDT CustomSettings.ini for Task Sequence"
+    Write-Log -Type Info -Evt "(TSID: $Id) Setting MDT CustomSettings.ini for Task Sequence"
 
     ## Setup MDT CustomSettings.ini for auto deploy.
     Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
@@ -380,25 +387,25 @@ ForEach ($Id in $TsId)
     ## Set the VM name as build + the date and time.
     $VmName = ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
 
-    Write-Log -Type Info -Event "(TSID: $Id) Creating VM: $VmName on $VmHost"
-    Write-Log -Type Info -Event "(TSID: $Id) Adding VHD: $VhdPath\$VmName.vhdx"
-    Write-Log -Type Info -Event "(TSID: $Id) Adding Virtual NIC: $VmNic"
+    Write-Log -Type Info -Evt "(TSID: $Id) Creating VM: $VmName on $VmHost"
+    Write-Log -Type Info -Evt "(TSID: $Id) Adding VHD: $VhdPath\$VmName.vhdx"
+    Write-Log -Type Info -Evt "(TSID: $Id) Adding Virtual NIC: $VmNic"
 
     ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
     New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost | Out-Null
 
-    Write-Log -Type Info -Event "(TSID: $Id) Configuring VM Processor Count"
-    Write-Log -Type Info -Event "(TSID: $Id) Configuring VM Static Memory"
-    Write-Log -Type Info -Event "(TSID: $Id) Configuring VM to boot from $BootMedia"
+    Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Processor Count"
+    Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Static Memory"
+    Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM to boot from $BootMedia"
 
     ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
     ## Set the boot CD to the configured ISO.
     ## Start the VM
     Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
     Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
-    Write-Log -Type Info -Event "(TSID: $Id) Starting $VmName on $VmHost"
+    Write-Log -Type Info -Evt "(TSID: $Id) Starting $VmName on $VmHost"
     Start-VM $VmName -ComputerName $VmHost
-    Write-Log -Type Info -Event "(TSID: $Id) Waiting for $VmName to shutdown"
+    Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
 
     ## Wait until the VM is turned off.
     While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
@@ -409,21 +416,21 @@ ForEach ($Id in $TsId)
     {
         $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
         $Disks = Get-VHD -VMId $VmBye.Id -ComputerName $VmHost
-        Write-Log -Type Info -Event "(TSID: $Id) Deleting $VmName on $VmHost"
+        Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
         Invoke-Command {Remove-Item $using:disks.path -Force} -ComputerName $VmBye.ComputerName
         Start-Sleep -Seconds 5
     }
 
     else {
         $VmLocal = Get-VM -Name $VmName -ComputerName $VmHost
-        Write-Log -Type Info -Event "(TSID: $Id) Deleting $VmName on $VmHost"
+        Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
         Remove-Item $VmLocal.HardDrives.Path -Force
     }
 
     Remove-VM $VmName -ComputerName $VmHost -Force
 
     ## Restore CustomSettings.ini from the backup.
-    Write-Log -Type Info -Event "(TSID: $Id) Restoring MDT CustomSettings.ini from backup"
+    Write-Log -Type Info -Evt "(TSID: $Id) Restoring MDT CustomSettings.ini from backup"
     Remove-Item $MdtBuildPath\Control\CustomSettings.ini
     Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
 
@@ -433,21 +440,24 @@ ForEach ($Id in $TsId)
 
     ForEach ($File in $Wims)
     {
-        Write-Log -Type Info -Event "(TSID: $Id) Importing WIM File: $File"
+        Write-Log -Type Info -Evt "(TSID: $Id) Importing WIM File: $File"
         Import-MDTOperatingSystem -Path "ImgFacDeploy:\Operating Systems" -SourceFile $File -DestinationFolder $File.Name | Out-Null
         Rename-Item -Path "ImgFacDeploy:\Operating Systems\$Id* in $Id`_*-*-*-*-*.wim $Id`_*-*-*-*-*.wim" -NewName ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
     }
 
     ## Cleanup the WIM files in the captures folder of the build share.
-    Write-Log -Type Info -Event "(TSID: $Id) Removing captured WIM file"
+    Write-Log -Type Info -Evt "(TSID: $Id) Removing captured WIM file"
     Remove-Item $MdtBuildPath\Captures\$Id`_*-*-*-*-*.wim
-    Write-Log -Type Info -Event "End of Task Sequence ID: $Id"
+    Write-Log -Type Info -Evt "End of Task Sequence ID: $Id"
+
+    ## Increase count for progress bar
+    $i = $i+1
 }
 ##
 ## End of the build and capture process for TS's
 ##
 
-Write-Log -Type Info -Event "Process finished"
+Write-Log -Type Info -Evt "Process finished"
 
 ## If logging is configured then finish the log file.
 If ($LogPath)
@@ -489,6 +499,7 @@ If ($LogPath)
             Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer
         }
     }
+    ## End of e-mail.
 }
 
 ## End
