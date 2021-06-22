@@ -44,7 +44,7 @@
     To create the password file run this command as the user and on the machine that will use the file:
 
     $creds = Get-Credential
-    $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
+    $creds.Password | ConvertFrom-SecureString | Set-Content c:\scripts\ps-script-pwd.txt
 
     .PARAMETER Build
     Location of the build share. It can be the same as the deployment share, and it can be a local or UNC path.
@@ -109,14 +109,14 @@
     Configures the utility to connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -VH hyperv01 -VHD C:\Hyper-V\VHD
-    -Boot C:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -TS W10-1909,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory'
-    -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
+    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD
+    -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote -Ts W10-21H1,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory'
+    -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
 
-    This configuration will build a WIM file from the task sequences W10-1909 and WS19-DC. They will be imported to the deployment share on MDT01.
-    The Hyper-V server used will be HYPERV01, the VHD for the VMs generated will be stored in C:\Hyper-V\VHD on the server HYPERV01.
-    The boot iso file will be C:\iso\LiteTouchPE_x64.iso, located on the Hyper-V server. The virtual switch used by the VM will be called
-    vSwitch-Ext. The log file will be output to C:\scripts\logs and it will be e-mailed with a custom subject line, using an SSL conection.
+    The above command will build WIM files from the task sequences W10-1909 and WS19-DC. They will be imported to the deployment share on MDT01.
+    The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host.
+    The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host.
+    The virtual switch used by the VMs will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and e-mailed with a custom subject line.
 #>
 
 ## Set up command line switches.

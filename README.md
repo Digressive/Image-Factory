@@ -55,8 +55,10 @@ Here are the settings you'll need to add to your Bootstrap.ini to automatically 
 ```txt
 [Settings]
 Priority=Default
-DeployRoot=\\mdt01\BuildShare$
-UserDomain=corp.contoso.com
+
+[Default]
+DeployRoot=\\mdt19\BuildShare$
+UserDomain=contoso.com
 UserID=mdt_admin
 UserPassword=P@ssw0rd
 SkipBDDWelcome=YES
@@ -87,11 +89,11 @@ Here’s a list of all the command line switches and example configurations.
 | -Vhd | The path relative to the Hyper-V server of where to put the VHD file for the VM(s) that will be generated. | C:\Hyper-V\VHD |
 | -Boot | The path relative to the Hyper-V server of where the ISO file is to boot from. | C:\iso\LiteTouchPE_x64.iso |
 | -Vnic | Name of the virtual switch that the virtual machine should use to communicate with the network. If the name of the switch contains a space encapsulate with single or double quotes. | vSwitch-Ext |
-| -Ts | The comma-separated list of task sequence ID's to build. | W10-1809,WS19-DC |
+| -Ts | The comma-separated list of task sequence ID's to build. | W10-21H1,WS19-DC |
 | -Compat | Use this switch if the Hyper-V server is Windows Server 2012 R2 and the script is running on Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so it can manage WS2012 R2 Hyper-V VMs. | N/A |
 | -Remote | Use this switch if the Hyper-V server is a remote device. Do not use this switch if the script is running on the same device as Hyper-V. | N/A |
 | -NoBanner | Use this option to hide the ASCII art title in the console. | N/A |
-| -L | The path to output the log file to. The file name will be Image-Factory_YYYY-MM-dd_HH-mm-ss.log. Do not add a trailing \ backslash. | C:\foo |
+| -L | The path to output the log file to. The file name will be Image-Factory_YYYY-MM-dd_HH-mm-ss.log. Do not add a trailing \ backslash. | C:\scripts\logs |
 | -Subject | The subject line for the e-mail log. Encapsulate with single or double quotes. If no subject is specified, the default of "Image Factory Utility Log" will be used. | 'Server: Notification' |
 | -SendTo | The e-mail address the log should be sent to. | me@contoso.com |
 | -From | The e-mail address the log should be sent from. | ImgFactory@contoso.com |
@@ -103,7 +105,7 @@ Here’s a list of all the command line switches and example configurations.
 ### Example
 
 ``` txt
-Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -VH hyperv01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64.iso -VNic vSwitch-Ext -Remote -TS W10-1909,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory' -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
+Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote -Ts W10-21H1,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory' -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
 ```
 
-The above command will build WIM files from the task sequences W10-1909 and WS19-DC. They will be imported to the deployment share on MDT01. The Hyper-V host used will be HYPERV01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host. The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host. The virtual switch used by the VMs will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and e-mailed with a custom subject line.
+The above command will build WIM files from the task sequences W10-1909 and WS19-DC. They will be imported to the deployment share on MDT01. The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host. The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host. The virtual switch used by the VMs will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and e-mailed with a custom subject line.

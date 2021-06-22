@@ -44,7 +44,7 @@
     To create the password file run this command as the user and on the machine that will use the file:
 
     $creds = Get-Credential
-    $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
+    $creds.Password | ConvertFrom-SecureString | Set-Content c:\scripts\ps-script-pwd.txt
 
     .PARAMETER Deploy
     Location of the deployment share. It can be the same as the deployment share, and it can be a local or UNC path.
@@ -97,12 +97,12 @@
     Configures the utility to connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Image-Factory-Deploy.ps1 -Deploy \\mdt01\DeploymentShare$ -VH hyperv01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64-Deploy.iso
-    -VNic vSwitch-Ext -TS W10-1909,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory Deploy' -SendTo me@contoso.com
-    -From ImgFactoryDeploy@contoso.com -Smtp smtp.outlook.com -User user -Pwd C:\foo\pwd.txt -UseSsl
+    Image-Factory-Deploy.ps1 -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64-Deploy.iso
+    -Vnic vSwitch-Ext -TS W10-21H1,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory Deploy' -SendTo me@contoso.com
+    -From ImgFactoryDeploy@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
 
-    This configuration will build VMs from the task sequences W10-1909 and WS19-DC. The Hyper-V server used will be HYPERV01, the VHD for
-    the VMs generated will be stored in C:\Hyper-V\VHD on the server HYPERV01. The boot iso file will be C:\iso\LiteTouchPE_x64-Depoloy.iso,
+    This configuration will build VMs from the task sequences W10-21H1 and WS19-DC. The Hyper-V server used will be VS01, the VHD for
+    the VMs generated will be stored in C:\Hyper-V\VHD on the server VS01. The boot iso file will be C:\iso\LiteTouchPE_x64-Deploy.iso,
     located on the Hyper-V server. The virtual switch used by the VM will be called vSwitch-Ext. The log file will be output to
     C:\scripts\logs and it will be e-mailed with a custom subject line, using an SSL conection.
 #>
