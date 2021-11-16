@@ -14,7 +14,7 @@
 
 .LICENSEURI
 
-.PROJECTURI https://gal.vin/2017/08/26/image-factory
+.PROJECTURI https://gal.vin/posts/image-factory/
 
 .ICONURI
 
