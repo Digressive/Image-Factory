@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.06.22
+.VERSION 21.11.16
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -175,7 +175,7 @@ Param(
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.06.22                                                  "
+        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.11.16                                                  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
         Write-Host -Object ""
     }
@@ -184,6 +184,14 @@ Param(
 ## If the log file already exists, clear it.
 If ($LogPath)
 {
+    ## Make sure the log directory exists.
+    $LogPathFolderT = Test-Path $LogPath
+
+    If ($LogPathFolderT -eq $False)
+    {
+        New-Item $LogPath -ItemType Directory -Force | Out-Null
+    }
+
     $LogFile = ("Image-Factory_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
 
@@ -247,10 +255,22 @@ Function Write-Log($Type, $Evt)
     }
 }
 
+## Setting an easier to use variable for computer name of the Hyper-V server.
+$Hostn = $Env:ComputerName
+
+## getting Windows Version info
+$OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
+$OSVMin = [environment]::OSVersion.Version | Select-Object -expand minor
+$OSVBui = [environment]::OSVersion.Version | Select-Object -expand build
+$OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
+
 ##
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
+Write-Log -Type Conf -Evt "Utility Version:.......21.11.16"
+Write-Log -Type Conf -Evt "Hostname:..............$Hostn."
+Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPath."
 Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
 Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
