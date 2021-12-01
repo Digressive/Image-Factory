@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.11.16
+.VERSION 21.12.01
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -99,6 +99,9 @@
     .PARAMETER Smtp
     The DNS name or IP address of the SMTP server.
 
+    .PARAMETER Port
+    The Port that should be used for the SMTP server.
+
     .PARAMETER User
     The user account to authenticate to the SMTP server.
 
@@ -131,7 +134,6 @@ Param(
     [parameter(Mandatory=$True)]
     [alias("TS")]
     $TsId,
-    [parameter(Mandatory=$True)]
     [alias("VH")]
     $VmHost,
     [parameter(Mandatory=$True)]
@@ -140,7 +142,6 @@ Param(
     [parameter(Mandatory=$True)]
     [alias("Boot")]
     $BootMedia,
-    [parameter(Mandatory=$True)]
     [alias("VNic")]
     $VmNic,
     [alias("L")]
@@ -154,6 +155,8 @@ Param(
     $MailFrom,
     [alias("Smtp")]
     $SmtpServer,
+    [alias("Port")]
+    $SmtpPort,
     [alias("User")]
     $SmtpUser,
     [alias("Pwd")]
@@ -161,6 +164,7 @@ Param(
     $SmtpPwd,
     [switch]$UseSsl,
     [switch]$Compat,
+    [switch]$VBox,
     [switch]$Remote,
     [switch]$NoBanner)
 
@@ -175,7 +179,7 @@ Param(
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.11.16                                                  "
+        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.12.01                                                  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
         Write-Host -Object ""
     }
@@ -268,17 +272,34 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......21.11.16"
+Write-Log -Type Conf -Evt "Utility Version:.......21.12.01"
 Write-Log -Type Conf -Evt "Hostname:..............$Hostn."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPath."
 Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
 Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
 Write-Log -Type Conf -Evt "TS ID's:...............$TsId."
-Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
+
+If ($Null -ne $VmHost)
+{
+    Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
+}
+
+else {
+    Write-Log -Type Conf -Evt "VM Host:...............No Config"
+}
+
 Write-Log -Type Conf -Evt "VHD path:..............$VhdPath."
 Write-Log -Type Conf -Evt "Boot media path:.......$BootMedia."
-Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
+
+If ($Null -ne $VmHost)
+{
+    Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
+}
+
+else {
+    Write-Log -Type Conf -Evt "Virtual NIC name:......No Config"
+}
 
 If ($Null -ne $LogPath)
 {
@@ -325,6 +346,15 @@ else {
     Write-Log -Type Conf -Evt "SMTP server:...........No Config"
 }
 
+If ($SmtpPort)
+{
+    Write-Log -Type Conf -Evt "SMTP Port:...............$SmtpPort."
+}
+
+else {
+    Write-Log -Type Conf -Evt "SMTP Port:...............Default"
+}
+
 If ($SmtpUser)
 {
     Write-Log -Type Conf -Evt "SMTP user:.............$SmtpUser."
@@ -344,6 +374,7 @@ else {
 }
 
 Write-Log -Type Conf -Evt "-UseSSL switch:........$UseSsl."
+Write-Log -Type Conf -Evt "-VBox switch:..........$VBox."
 Write-Log -Type Conf -Evt "-Compat switch:........$Compat."
 Write-Log -Type Conf -Evt "-Remote switch:........$Remote."
 Write-Log -Type Conf -Evt "************************************************************"
@@ -353,10 +384,17 @@ Write-Log -Type Info -Evt "Process started"
 ##
 
 ## If the -compat switch is used, load the older Hyper-V PS module.
-If ($Compat)
+If ($Vbox -eq $false)
 {
-    Write-Log -Type Info -Evt "Importing Hyper-V 1.1 PowerShell Module"
-    Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
+    If ($Compat)
+    {
+        Write-Log -Type Info -Evt "Importing Hyper-V 1.1 PowerShell Module"
+        Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
+    }
+}
+
+else {
+    $VBoxLoc = "C:\Program Files\Oracle\VirtualBox"
 }
 
 ## Import the Deployment Toolkit PowerShell module.
@@ -411,43 +449,83 @@ ForEach ($Id in $TsId)
     Write-Log -Type Info -Evt "(TSID: $Id) Adding VHD: $VhdPath\$VmName.vhdx"
     Write-Log -Type Info -Evt "(TSID: $Id) Adding Virtual NIC: $VmNic"
 
-    ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
-    New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost | Out-Null
+    If ($Vbox -eq $false)
+    {
+        ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
+        New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost | Out-Null
+    }
+
+    else {
+        & $VBoxLoc\VBoxManage createvm --name $VmName --ostype "Windows10_64" --register
+    }
 
     Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Processor Count"
     Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Static Memory"
     Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM to boot from $BootMedia"
 
-    ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
-    ## Set the boot CD to the configured ISO.
-    ## Start the VM
-    Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
-    Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
-    Write-Log -Type Info -Evt "(TSID: $Id) Starting $VmName on $VmHost"
-    Start-VM $VmName -ComputerName $VmHost
-    Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
-
-    ## Wait until the VM is turned off.
-    While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
-
-    ## If -remote switch is set, remove the VMs VHD's from the remote server.
-    ## If switch is not set, the VM's VHDs are removed from the local computer.
-    If ($Remote)
+    If ($Vbox -eq $false)
     {
-        $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
-        $Disks = Get-VHD -VMId $VmBye.Id -ComputerName $VmHost
-        Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
-        Invoke-Command {Remove-Item $using:disks.path -Force} -ComputerName $VmBye.ComputerName
-        Start-Sleep -Seconds 5
+        ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
+        ## Set the boot CD to the configured ISO.
+        ## Start the VM
+        Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
+        Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
+        Write-Log -Type Info -Evt "(TSID: $Id) Starting $VmName on $VmHost"
+        Start-VM $VmName -ComputerName $VmHost
     }
 
     else {
-        $VmLocal = Get-VM -Name $VmName -ComputerName $VmHost
-        Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
-        Remove-Item $VmLocal.HardDrives.Path -Force
+        & $VBoxLoc\VBoxManage modifyvm $VmName --cpus 2
+        & $VBoxLoc\VBoxManage modifyvm $VmName --memory 2048 --vram 128
+        ## Testing
+        # & $VBoxLoc\VBoxManage modifyvm $VmName --memory 4096 --vram 128
+        & $VBoxLoc\VBoxManage modifyvm $VmName --nic1 nat
+        & $VBoxLoc\VBoxManage createhd --filename $VhdPath\$VmName.vdi --size 130048 --format VDI
+        & $VBoxLoc\VBoxManage storagectl $VmName --name "SATA Controller" --add sata --controller IntelAhci
+        & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $VhdPath\$VmName.vdi
+        & $VBoxLoc\VBoxManage storagectl $VmName --name "IDE Controller" --add ide --controller PIIX4
+        & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $BootMedia
+        & $VBoxLoc\VBoxManage modifyvm $VmName --boot1 dvd --boot2 disk --boot3 none --boot4 none
+        Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
+        & $VBoxLoc\VBoxHeadless --startvm $VmName
     }
 
-    Remove-VM $VmName -ComputerName $VmHost -Force
+    If ($Vbox -eq $false)
+    {
+        ## Wait until the VM is turned off.
+        Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
+        While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
+    }
+
+    If ($Vbox -eq $false)
+    {
+        ## If -remote switch is set, remove the VMs VHD's from the remote server.
+        ## If switch is not set, the VM's VHDs are removed from the local computer.
+        If ($Remote)
+        {
+            $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
+            $Disks = Get-VHD -VMId $VmBye.Id -ComputerName $VmHost
+            Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
+            Invoke-Command {Remove-Item $using:disks.path -Force} -ComputerName $VmBye.ComputerName
+            Start-Sleep -Seconds 5
+        }
+
+        else {
+            $VmLocal = Get-VM -Name $VmName -ComputerName $VmHost
+            Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
+            Remove-Item $VmLocal.HardDrives.Path -Force
+        }
+    }
+
+    If ($Vbox -eq $false)
+    {
+        Remove-VM $VmName -ComputerName $VmHost -Force
+    }
+
+    else {
+        ## Remove VBox VM and Files here
+        & $VBoxLoc\VBoxManage unregistervm $VmName --delete
+    }
 
     ## Restore CustomSettings.ini from the backup.
     Write-Log -Type Info -Evt "(TSID: $Id) Restoring MDT CustomSettings.ini from backup"
@@ -493,7 +571,13 @@ If ($LogPath)
             $MailSubject = "Image Factory Utility Log"
         }
 
-        ## Setting the contents of the log to be the e-mail body. 
+        ## Default Smtp Port if none is configured.
+        If ($Null -eq $SmtpPort)
+        {
+            $SmtpPort = "25"
+        }
+
+        ## Setting the contents of the log to be the e-mail body.
         $MailBody = Get-Content -Path $Log | Out-String
 
         ## If an smtp password is configured, get the username and password together for authentication.
@@ -519,7 +603,7 @@ If ($LogPath)
             Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer
         }
     }
-    ## End of e-mail.
+    ## End of Email block
 }
 
 ## End

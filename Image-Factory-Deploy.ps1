@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.11.16
+.VERSION 21.12.01
 
 .GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
 
@@ -87,6 +87,9 @@
     .PARAMETER Smtp
     The DNS name or IP address of the SMTP server.
 
+    .PARAMETER Port
+    The Port that should be used for the SMTP server.
+
     .PARAMETER User
     The user account to authenticate to the SMTP server.
 
@@ -139,6 +142,8 @@ Param(
     $MailFrom,
     [alias("Smtp")]
     $SmtpServer,
+    [alias("Port")]
+    $SmtpPort,
     [alias("User")]
     $SmtpUser,
     [alias("Pwd")]
@@ -158,7 +163,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                  D  E  P  L  O  Y                                                    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin                      Version 21.11.16                                  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin                      Version 21.12.01                                  "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
     Write-Host -Object ""
 }
@@ -251,7 +256,7 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......21.11.16"
+Write-Log -Type Conf -Evt "Utility Version:.......21.12.01"
 Write-Log -Type Conf -Evt "Hostname:..............$Hostn."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
@@ -305,6 +310,15 @@ If ($SmtpServer)
 
 else {
     Write-Log -Type Conf -Evt "SMTP server:...........No Config"
+}
+
+If ($SmtpPort)
+{
+    Write-Log -Type Conf -Evt "SMTP Port:...............$SmtpPort."
+}
+
+else {
+    Write-Log -Type Conf -Evt "SMTP Port:...............Default"
 }
 
 If ($SmtpUser)
@@ -427,6 +441,12 @@ If ($LogPath)
             $MailSubject = "Image Factory Utility Deploy Log"
         }
 
+            ## Default Smtp Port if none is configured.
+            If ($Null -eq $SmtpPort)
+            {
+                $SmtpPort = "25"
+            }
+
         ## Setting the contents of the log to be the e-mail body. 
         $MailBody = Get-Content -Path $Log | Out-String
 
@@ -453,7 +473,7 @@ If ($LogPath)
             Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer
         }
     }
-    ## End of e-mail.
+    ## End of Email block
 }
 
 ## End
