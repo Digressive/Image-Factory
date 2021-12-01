@@ -65,6 +65,9 @@
     .PARAMETER TS
     The comma-separated list of task sequence ID's to build.
 
+    .PARAMETER VBox
+    Use this switch to specify the use of Oracle Virtual Box instead of Hyper-V.
+
     .PARAMETER NoBanner
     Use this option to hide the ASCII art title in the console.
 
@@ -101,10 +104,10 @@
 
     .EXAMPLE
     Image-Factory-Deploy.ps1 -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64-Deploy.iso
-    -Vnic vSwitch-Ext -TS W10-21H1,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory Deploy' -SendTo me@contoso.com
+    -Vnic vSwitch-Ext -TS W11-21H2,W10-21H2,WS22-DC -L C:\scripts\logs -Subject 'Server: Image Factory Deploy' -SendTo me@contoso.com
     -From ImgFactoryDeploy@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
 
-    This configuration will build VMs from the task sequences W10-21H1 and WS19-DC. The Hyper-V server used will be VS01, the VHD for
+    This configuration will build VMs from the task sequences W11-21H2, W10-21H2 and WS22-DC. The Hyper-V server used will be VS01, the VHD for
     the VMs generated will be stored in C:\Hyper-V\VHD on the server VS01. The boot iso file will be C:\iso\LiteTouchPE_x64-Deploy.iso,
     located on the Hyper-V server. The virtual switch used by the VM will be called vSwitch-Ext. The log file will be output to
     C:\scripts\logs and it will be e-mailed with a custom subject line, using an SSL conection.
@@ -119,7 +122,6 @@ Param(
     [parameter(Mandatory=$True)]
     [alias("TS")]
     $TsId,
-    [parameter(Mandatory=$True)]
     [alias("VH")]
     $VmHost,
     [parameter(Mandatory=$True)]
@@ -128,11 +130,9 @@ Param(
     [parameter(Mandatory=$True)]
     [alias("Boot")]
     $BootMedia,
-    [parameter(Mandatory=$True)]
     [alias("VNic")]
     $VmNic,
     [alias("L")]
-    [ValidateScript({Test-Path $_ -PathType 'Container'})]
     $LogPath,
     [alias("Subject")]
     $MailSubject,
@@ -150,6 +150,7 @@ Param(
     [ValidateScript({Test-Path -Path $_ -PathType Leaf})]
     $SmtpPwd,
     [switch]$UseSsl,
+    [switch]$VBox,
     [switch]$NoBanner)
 
 If ($NoBanner -eq $False)
@@ -243,8 +244,11 @@ Function Write-Log($Type, $Evt)
     }
 }
 
-## Setting an easier to use variable for computer name of the Hyper-V server.
-$Hostn = $Env:ComputerName
+## If not configured set VmHost to local
+If ($Null -eq $VmHost)
+{
+    $VmHost = $Env:ComputerName
+}
 
 ## getting Windows Version info
 $OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
@@ -257,7 +261,7 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
 Write-Log -Type Conf -Evt "Utility Version:.......21.12.01"
-Write-Log -Type Conf -Evt "Hostname:..............$Hostn."
+Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
 Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
@@ -265,7 +269,15 @@ Write-Log -Type Conf -Evt "TS ID's:...............$TsId."
 Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
 Write-Log -Type Conf -Evt "VHD path:..............$VhdPath."
 Write-Log -Type Conf -Evt "Boot media path:.......$BootMedia."
-Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
+
+If ($Null -ne $VmNic)
+{
+    Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
+}
+
+else {
+    Write-Log -Type Conf -Evt "Virtual NIC name:......No Config"
+}
 
 If ($Null -ne $LogPath)
 {
@@ -340,11 +352,18 @@ else {
 }
 
 Write-Log -Type Conf -Evt "-UseSSL switch:........$UseSsl."
+Write-Log -Type Conf -Evt "-VBox switch:..........$VBox."
 Write-Log -Type Conf -Evt "************************************************************"
 Write-Log -Type Info -Evt "Process started"
 ##
 ## Display current config ends here.
 ##
+
+## If the -compat switch is used, load the older Hyper-V PS module.
+If ($Vbox -eq $true)
+{
+    $VBoxLoc = "C:\Program Files\Oracle\VirtualBox"
+}
 
 ## For Progress bar
 $i = 0
@@ -390,27 +409,56 @@ ForEach ($Id in $TsId)
     Write-Log -Type Info -Evt "(TSID: $Id) Adding VHD: $VhdPath\$VmName.vhdx"
     Write-Log -Type Info -Evt "(TSID: $Id) Adding Virtual NIC: $VmNic"
 
-    ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
-    New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost | Out-Null
+    If ($Vbox -eq $false)
+    {
+        ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
+        New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost | Out-Null
+    }
+
+    else {
+        & $VBoxLoc\VBoxManage createvm --name $VmName --ostype "Windows10_64" --register
+    }
 
     Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Processor Count"
     Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Static Memory"
     Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM to boot from $BootMedia"
 
-    ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
-    ## Set the boot CD to the configured ISO.
-    ## Start the VM
-    Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
-    Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
-    Write-Log -Type Info -Evt "(TSID: $Id) Starting $VmName on $VmHost"
-    Start-VM $VmName -ComputerName $VmHost
-    Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
+    If ($Vbox -eq $false)
+    {
+        ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
+        ## Set the boot CD to the configured ISO.
+        ## Start the VM
+        Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
+        Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
+        Write-Log -Type Info -Evt "(TSID: $Id) Starting $VmName on $VmHost"
+        Start-VM $VmName -ComputerName $VmHost
+    }
 
-    ## Wait until the VM is turned off.
-    While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
+    else {
+        & $VBoxLoc\VBoxManage modifyvm $VmName --cpus 2
+        & $VBoxLoc\VBoxManage modifyvm $VmName --memory 2048 --vram 128
+        ## Testing
+        # & $VBoxLoc\VBoxManage modifyvm $VmName --memory 4096 --vram 128
+        & $VBoxLoc\VBoxManage modifyvm $VmName --nic1 nat
+        & $VBoxLoc\VBoxManage createhd --filename $VhdPath\$VmName.vdi --size 130048 --format VDI
+        & $VBoxLoc\VBoxManage storagectl $VmName --name "SATA Controller" --add sata --controller IntelAhci
+        & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $VhdPath\$VmName.vdi
+        & $VBoxLoc\VBoxManage storagectl $VmName --name "IDE Controller" --add ide --controller PIIX4
+        & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $BootMedia
+        & $VBoxLoc\VBoxManage modifyvm $VmName --boot1 dvd --boot2 disk --boot3 none --boot4 none
+        Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
+        & $VBoxLoc\VBoxHeadless --startvm $VmName
+    }
 
-    ## Change VM config to remove boot ISO.
-    Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $null -ComputerName $VmHost
+    If ($Vbox -eq $false)
+    {
+        ## Wait until the VM is turned off.
+        Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
+        While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
+
+        ## Change VM config to remove boot ISO.
+        Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $null -ComputerName $VmHost
+    }
 
     ## Restore CustomSettings.ini from the backup.
     Write-Log -Type Info -Evt "(TSID: $Id) Restoring MDT CustomSettings.ini from backup"

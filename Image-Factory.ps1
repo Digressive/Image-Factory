@@ -68,6 +68,9 @@
     .PARAMETER TS
     The comma-separated list of task sequence ID's to build.
 
+    .PARAMETER VBox
+    Use this switch to specify the use of Oracle Virtual Box instead of Hyper-V.
+
     .PARAMETER Compat
     Use this switch if the Hyper-V server is Windows Server 2012 R2 and the script is running on
     Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so
@@ -113,10 +116,10 @@
 
     .EXAMPLE
     Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD
-    -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote -Ts W10-21H1,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory'
+    -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote -Ts W11-21H2,W10-21H2,WS22-DC -L C:\scripts\logs -Subject 'Server: Image Factory'
     -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
 
-    The above command will build WIM files from the task sequences W10-1909 and WS19-DC. They will be imported to the deployment share on MDT01.
+    The above command will build WIM files from the task sequences W11-21H2, W10-21H2 and WS22-DC. They will be imported to the deployment share on MDT01.
     The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host.
     The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host.
     The virtual switch used by the VMs will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and e-mailed with a custom subject line.
@@ -145,7 +148,6 @@ Param(
     [alias("VNic")]
     $VmNic,
     [alias("L")]
-    [ValidateScript({Test-Path $_ -PathType 'Container'})]
     $LogPath,
     [alias("Subject")]
     $MailSubject,
@@ -259,8 +261,11 @@ Function Write-Log($Type, $Evt)
     }
 }
 
-## Setting an easier to use variable for computer name of the Hyper-V server.
-$Hostn = $Env:ComputerName
+## If not configured set VmHost to local
+If ($Null -eq $VmHost)
+{
+    $VmHost = $Env:ComputerName
+}
 
 ## getting Windows Version info
 $OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
@@ -273,26 +278,17 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
 Write-Log -Type Conf -Evt "Utility Version:.......21.12.01"
-Write-Log -Type Conf -Evt "Hostname:..............$Hostn."
+Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPath."
 Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
 Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
 Write-Log -Type Conf -Evt "TS ID's:...............$TsId."
-
-If ($Null -ne $VmHost)
-{
-    Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
-}
-
-else {
-    Write-Log -Type Conf -Evt "VM Host:...............No Config"
-}
-
+Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
 Write-Log -Type Conf -Evt "VHD path:..............$VhdPath."
 Write-Log -Type Conf -Evt "Boot media path:.......$BootMedia."
 
-If ($Null -ne $VmHost)
+If ($Null -ne $VmNic)
 {
     Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
 }
