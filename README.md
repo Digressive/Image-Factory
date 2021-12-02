@@ -33,7 +33,7 @@ Tweet me if you have questions: [@mikegalvin_](https://twitter.com/mikegalvin_)
 ## Features and Requirements
 
 * This utility is designed to run on a computer with Microsoft Deployment Toolkit installed.
-* The computer must have the Hyper-V management PowerShell modules installed.
+* The computer must have either the Hyper-V management PowerShell modules installed, or Oracle Virtual Box.
 * The primary function of this utility is to automate the production of WIM files from MDT task sequences.
 * The utility requires at least PowerShell 5.0.
 * This utility has been tested on Windows 10, Windows Server 2019, Windows Server 2016 and Windows Server 2012 R2.
@@ -85,17 +85,19 @@ Here’s a list of all the command line switches and example configurations.
 | ------------------- | ----------- | ------- |
 | -Build | Location of the build share. It can be the same as the deployment share, and it can be a local or UNC path. | \\\server\buildshare$ OR C:\BuildShare |
 | -Deploy | Location of the deployment share. It can be the same as the deployment share, and it can be a local or UNC path. | \\\server\deploymentshare$ OR C:\DeploymentShare |
-| -Vh | Name of the Hyper-V host. Can be a local or remote device. | VS01 |
-| -Vhd | The path relative to the Hyper-V server of where to put the VHD file for the VM(s) that will be generated. | C:\Hyper-V\VHD |
-| -Boot | The path relative to the Hyper-V server of where the ISO file is to boot from. | C:\iso\LiteTouchPE_x64.iso |
-| -Vnic | Name of the virtual switch that the virtual machine should use to communicate with the network. If the name of the switch contains a space encapsulate with single or double quotes. | vSwitch-Ext |
-| -Ts | The comma-separated list of task sequence ID's to build. | W10-21H1,WS19-DC |
-| -Compat | Use this switch if the Hyper-V server is Windows Server 2012 R2 and the script is running on Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so it can manage WS2012 R2 Hyper-V VMs. | N/A |
-| -Remote | Use this switch if the Hyper-V server is a remote device. Do not use this switch if the script is running on the same device as Hyper-V. | N/A |
+| -Vh | Hyper-V Only - Name of the Hyper-V host if remote. If not set it will default to local. | VS01 |
+| -Vhd | The path to store the virtual hard disk file(s). If using a remote Hyper-V server the path should be relative for that server. | C:\VMs\VHD |
+| -Boot | The path to the ISO file to boot from. If using a remote Hyper-V server the path should be relative for that server. | C:\iso\LiteTouchPE_x64.iso |
+| -Vnic | Hyper-V Only - Name of the virtual switch that the VM should use to communicate with the network. If the name of the switch contains a space encapsulate with single or double quotes. | vSwitch-Ext |
+| -Ts | The comma-separated list of task sequence ID's to build. | W11-21H2,W10-21H2,WS22-DC |
+| -VBox | Use this switch to use Oracle Virtual Box instead of Hyper-V | N/A |
+| -Compat | Legacy Hyper-V Only - Use this switch if the Hyper-V host is Windows Server 2012 R2 and the script is running on Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so it can manage WS2012 R2 Hyper-V VMs. | N/A |
+| -Remote | Hyper-V Only - Use this switch if the Hyper-V server is a remote device. | N/A |
 | -NoBanner | Use this option to hide the ASCII art title in the console. | N/A |
 | -L | The path to output the log file to. The file name will be Image-Factory_YYYY-MM-dd_HH-mm-ss.log. Do not add a trailing \ backslash. | C:\scripts\logs |
 | -Subject | The subject line for the e-mail log. Encapsulate with single or double quotes. If no subject is specified, the default of "Image Factory Utility Log" will be used. | 'Server: Notification' |
 | -SendTo | The e-mail address the log should be sent to. | me@contoso.com |
+| -Port | The Port that should be used for the SMTP server. If none is specified then the default of 25 will be used. | 587 |
 | -From | The e-mail address the log should be sent from. | ImgFactory@contoso.com |
 | -Smtp | The DNS name or IP address of the SMTP server. | smtp.live.com OR smtp.office365.com |
 | -User | The user account to authenticate to the SMTP server. | example@contoso.com |
@@ -105,7 +107,7 @@ Here’s a list of all the command line switches and example configurations.
 ### Example
 
 ``` txt
-Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote -Ts W10-21H1,WS19-DC -L C:\scripts\logs -Subject 'Server: Image Factory' -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
+Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote -Ts W11-21H2,W10-21H2,WS22-DC -L C:\scripts\logs -Subject 'Server: Image Factory' -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
 ```
 
-The above command will build WIM files from the task sequences W10-1909 and WS19-DC. They will be imported to the deployment share on MDT01. The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host. The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host. The virtual switch used by the VMs will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and e-mailed with a custom subject line.
+The above command will build WIM files from the task sequences W11-21H2, W10-21H2 and WS22-DC. They will be imported to the deployment share on MDT01. The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host. The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host. The virtual switch used by the VMs will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and e-mailed with a custom subject line.
