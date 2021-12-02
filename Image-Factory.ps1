@@ -4,7 +4,7 @@
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
-.AUTHOR Mike Galvin Contact: mike@gal.vin / twitter.com/mikegalvin_
+.AUTHOR Mike Galvin Contact: mike@gal.vin / twitter.com/mikegalvin_ / discord.gg/5ZsnJ5k
 
 .COMPANYNAME Mike Galvin
 

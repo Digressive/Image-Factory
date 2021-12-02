@@ -36,7 +36,7 @@ Join the [Discord](http://discord.gg/5ZsnJ5k) or Tweet me if you have questions:
 * The computer must have either the Hyper-V management PowerShell modules installed, or Oracle Virtual Box.
 * The primary function of this utility is to automate the production of WIM files from MDT task sequences.
 * The utility requires at least PowerShell 5.0.
-* This utility has been tested on Windows 10, Windows Server 2019, Windows Server 2016 and Windows Server 2012 R2.
+* This utility has been tested on Windows 11, Windows 10, Windows Server 2019, Windows Server 2016 and Windows Server 2012 R2.
 
 ## Oracle Virtual Box
 
