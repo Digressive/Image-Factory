@@ -70,6 +70,7 @@
 
     .PARAMETER VBox
     Use this switch to specify the use of Oracle Virtual Box instead of Hyper-V.
+    It is expected that Oracle Virtual Box is installed in the default location: C:\Program Files\Oracle\VirtualBox
 
     .PARAMETER Compat
     Use this switch if the Hyper-V server is Windows Server 2012 R2 and the script is running on

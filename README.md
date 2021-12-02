@@ -38,6 +38,10 @@ Tweet me if you have questions: [@mikegalvin_](https://twitter.com/mikegalvin_)
 * The utility requires at least PowerShell 5.0.
 * This utility has been tested on Windows 10, Windows Server 2019, Windows Server 2016 and Windows Server 2012 R2.
 
+## Oracle Virtual Box
+
+This utility expects Oracle Virtual Box to be installed in the default location of: ```C:\Program Files\Oracle\VirtualBox```
+
 ## Important Information
 
 The utility will make changes to your customsettings.ini file, although it will make a backup first. These changes are necessary so that the build process runs automated. Depending on your environment, you may need to make additional changes to your customsettings.ini.
