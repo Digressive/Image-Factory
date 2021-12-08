@@ -101,9 +101,9 @@ Here’s a list of all the command line switches and example configurations.
 | -L | The path to output the log file to. The file name will be Image-Factory_YYYY-MM-dd_HH-mm-ss.log. Do not add a trailing \ backslash. | C:\scripts\logs |
 | -Subject | The subject line for the e-mail log. Encapsulate with single or double quotes. If no subject is specified, the default of "Image Factory Utility Log" will be used. | 'Server: Notification' |
 | -SendTo | The e-mail address the log should be sent to. | me@contoso.com |
-| -Port | The Port that should be used for the SMTP server. If none is specified then the default of 25 will be used. | 587 |
 | -From | The e-mail address the log should be sent from. | ImgFactory@contoso.com |
 | -Smtp | The DNS name or IP address of the SMTP server. | smtp.live.com OR smtp.office365.com |
+| -Port | The Port that should be used for the SMTP server. If none is specified then the default of 25 will be used. | 587 |
 | -User | The user account to authenticate to the SMTP server. | example@contoso.com |
 | -Pwd | The txt file containing the encrypted password for SMTP authentication. | C:\scripts\ps-script-pwd.txt |
 | -UseSsl | Configures the utility to connect to the SMTP server using SSL. | N/A |
