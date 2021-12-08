@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.12.01
+.VERSION 21.12.08
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -182,7 +182,7 @@ Param(
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.12.01                                                  "
+        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.12.08                                                  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
         Write-Host -Object ""
     }
@@ -278,7 +278,7 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......21.12.01"
+Write-Log -Type Conf -Evt "Utility Version:.......21.12.08"
 Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPath."

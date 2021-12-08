@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.12.01
+.VERSION 21.12.08
 
 .GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
 
@@ -164,7 +164,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                  D  E  P  L  O  Y                                                    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin                      Version 21.12.01                                  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin                      Version 21.12.08                                  "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
     Write-Host -Object ""
 }
@@ -260,7 +260,7 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......21.12.01"
+Write-Log -Type Conf -Evt "Utility Version:.......21.12.08"
 Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
@@ -326,11 +326,11 @@ else {
 
 If ($SmtpPort)
 {
-    Write-Log -Type Conf -Evt "SMTP Port:...............$SmtpPort."
+    Write-Log -Type Conf -Evt "SMTP Port:.............$SmtpPort."
 }
 
 else {
-    Write-Log -Type Conf -Evt "SMTP Port:...............Default"
+    Write-Log -Type Conf -Evt "SMTP Port:.............Default"
 }
 
 If ($SmtpUser)
