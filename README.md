@@ -2,17 +2,6 @@
 
 Automate Creation of WIM Files
 
-```txt
-.___                  ___________              __                         ____ ___   __  .__.__  .__  __
-|   | _____    ____   \_   _____/____    _____/  |_  ___________ ___.__. |    |   \_/  |_|__|  | |__|/  |_ ___.__.
-|   |/     \  / ___\   |    __) \__  \ _/ ___\   __\/  _ \_  __ <   |  | |    |   /\   __\  |  | |  \   __<   |  |
-|   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |
-|___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|
-          \//_____/        \/        \/     \/                   \/                                        \/
-
-             Mike Galvin    https://gal.vin      Version 21.12.08
-```
-
 For full instructions and documentation, [visit my site.](https://gal.vin/posts/image-factory/)
 
 A demonstration video is available on [my YouTube channel.](https://youtu.be/BdNwWwxo7Ug)
@@ -93,7 +82,7 @@ Here’s a list of all the command line switches and example configurations.
 | -Vhd | The path to store the virtual hard disk file(s). If using a remote Hyper-V server the path should be relative for that server. | C:\VMs\VHD |
 | -Boot | The path to the ISO file to boot from. If using a remote Hyper-V server the path should be relative for that server. | C:\iso\LiteTouchPE_x64.iso |
 | -Vnic | Hyper-V Only - Name of the virtual switch that the VM should use to communicate with the network. If the name of the switch contains a space encapsulate with single or double quotes. | vSwitch-Ext |
-| -Ts | The comma-separated list of task sequence ID's to build. | W11-21H2,W10-21H2,WS22-DC |
+| -Ts | The comma-separated list of task sequence ID's to build. | W11-21H2,W10-21H2,WS22-DC |
 | -VBox | Use this switch to use Oracle Virtual Box instead of Hyper-V | N/A |
 | -Compat | Legacy Hyper-V Only - Use this switch if the Hyper-V host is Windows Server 2012 R2 and the script is running on Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so it can manage WS2012 R2 Hyper-V VMs. | N/A |
 | -Remote | Hyper-V Only - Use this switch if the Hyper-V server is a remote device. | N/A |
