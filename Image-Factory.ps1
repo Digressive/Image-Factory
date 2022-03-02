@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.12.08
+.VERSION 22.03.02
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -182,7 +182,7 @@ Param(
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 21.12.08                                                  "
+        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 22.03.02                                                  "
         Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
         Write-Host -Object ""
     }
@@ -278,7 +278,7 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......21.12.08"
+Write-Log -Type Conf -Evt "Utility Version:.......22.03.02"
 Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPath."
@@ -345,11 +345,11 @@ else {
 
 If ($SmtpPort)
 {
-    Write-Log -Type Conf -Evt "SMTP Port:...............$SmtpPort."
+    Write-Log -Type Conf -Evt "SMTP Port:.............$SmtpPort."
 }
 
 else {
-    Write-Log -Type Conf -Evt "SMTP Port:...............Default"
+    Write-Log -Type Conf -Evt "SMTP Port:.............Default"
 }
 
 If ($SmtpUser)
@@ -424,13 +424,13 @@ ForEach ($Id in $TsId)
     }
 
     Write-Log -Type Info -Evt "Start of Task Sequence ID: $Id"
-    Write-Log -Type Info -Evt "(TSID: $Id) Backing up current MDT CustomSettings.ini"
+    Write-Log -Type Info -Evt "(TSID:$Id) Backing up current MDT CustomSettings.ini"
 
     ## Backup the existing CustomSettings.ini.
     Copy-Item $MdtBuildPath\Control\CustomSettings.ini $MdtBuildPath\Control\CustomSettings-backup.ini
     Start-Sleep -Seconds 5
 
-    Write-Log -Type Info -Evt "(TSID: $Id) Setting MDT CustomSettings.ini for Task Sequence"
+    Write-Log -Type Info -Evt "(TSID:$Id) Setting MDT CustomSettings.ini for Task Sequence"
 
     ## Setup MDT CustomSettings.ini for auto deploy.
     Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
@@ -442,9 +442,9 @@ ForEach ($Id in $TsId)
     ## Set the VM name as build + the date and time.
     $VmName = ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
 
-    Write-Log -Type Info -Evt "(TSID: $Id) Creating VM: $VmName on $VmHost"
-    Write-Log -Type Info -Evt "(TSID: $Id) Adding VHD: $VhdPath\$VmName.vhdx"
-    Write-Log -Type Info -Evt "(TSID: $Id) Adding Virtual NIC: $VmNic"
+    Write-Log -Type Info -Evt "(TSID:$Id) Creating VM: $VmName on $VmHost"
+    Write-Log -Type Info -Evt "(TSID:$Id) Adding VHD: $VhdPath\$VmName.vhdx"
+    Write-Log -Type Info -Evt "(TSID:$Id) Adding Virtual NIC: $VmNic"
 
     If ($Vbox -eq $false)
     {
@@ -456,9 +456,9 @@ ForEach ($Id in $TsId)
         & $VBoxLoc\VBoxManage createvm --name $VmName --ostype "Windows10_64" --register
     }
 
-    Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Processor Count"
-    Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM Static Memory"
-    Write-Log -Type Info -Evt "(TSID: $Id) Configuring VM to boot from $BootMedia"
+    Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM Processor Count"
+    Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM Static Memory"
+    Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM to boot from $BootMedia"
 
     If ($Vbox -eq $false)
     {
@@ -467,7 +467,7 @@ ForEach ($Id in $TsId)
         ## Start the VM
         Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
         Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
-        Write-Log -Type Info -Evt "(TSID: $Id) Starting $VmName on $VmHost"
+        Write-Log -Type Info -Evt "(TSID:$Id) Starting $VmName on $VmHost"
         Start-VM $VmName -ComputerName $VmHost
     }
 
@@ -483,14 +483,14 @@ ForEach ($Id in $TsId)
         & $VBoxLoc\VBoxManage storagectl $VmName --name "IDE Controller" --add ide --controller PIIX4
         & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $BootMedia
         & $VBoxLoc\VBoxManage modifyvm $VmName --boot1 dvd --boot2 disk --boot3 none --boot4 none
-        Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
+        Write-Log -Type Info -Evt "(TSID:$Id) Waiting for $VmName to shutdown"
         & $VBoxLoc\VBoxHeadless --startvm $VmName
     }
 
     If ($Vbox -eq $false)
     {
         ## Wait until the VM is turned off.
-        Write-Log -Type Info -Evt "(TSID: $Id) Waiting for $VmName to shutdown"
+        Write-Log -Type Info -Evt "(TSID:$Id) Waiting for $VmName to shutdown"
         While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
     }
 
@@ -502,14 +502,14 @@ ForEach ($Id in $TsId)
         {
             $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
             $Disks = Get-VHD -VMId $VmBye.Id -ComputerName $VmHost
-            Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
+            Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
             Invoke-Command {Remove-Item $using:disks.path -Force} -ComputerName $VmBye.ComputerName
             Start-Sleep -Seconds 5
         }
 
         else {
             $VmLocal = Get-VM -Name $VmName -ComputerName $VmHost
-            Write-Log -Type Info -Evt "(TSID: $Id) Deleting $VmName on $VmHost"
+            Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
             Remove-Item $VmLocal.HardDrives.Path -Force
         }
     }
@@ -525,7 +525,7 @@ ForEach ($Id in $TsId)
     }
 
     ## Restore CustomSettings.ini from the backup.
-    Write-Log -Type Info -Evt "(TSID: $Id) Restoring MDT CustomSettings.ini from backup"
+    Write-Log -Type Info -Evt "(TSID:$Id) Restoring MDT CustomSettings.ini from backup"
     Remove-Item $MdtBuildPath\Control\CustomSettings.ini
     Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
 
@@ -535,13 +535,13 @@ ForEach ($Id in $TsId)
 
     ForEach ($File in $Wims)
     {
-        Write-Log -Type Info -Evt "(TSID: $Id) Importing WIM File: $File"
+        Write-Log -Type Info -Evt "(TSID:$Id) Importing WIM File: $File"
         Import-MDTOperatingSystem -Path "ImgFacDeploy:\Operating Systems" -SourceFile $File -DestinationFolder $File.Name | Out-Null
         Rename-Item -Path "ImgFacDeploy:\Operating Systems\$Id* in $Id`_*-*-*-*-*.wim $Id`_*-*-*-*-*.wim" -NewName ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
     }
 
     ## Cleanup the WIM files in the captures folder of the build share.
-    Write-Log -Type Info -Evt "(TSID: $Id) Removing captured WIM file"
+    Write-Log -Type Info -Evt "(TSID:$Id) Removing captured WIM file"
     Remove-Item $MdtBuildPath\Captures\$Id`_*-*-*-*-*.wim
     Write-Log -Type Info -Evt "End of Task Sequence ID: $Id"
 
