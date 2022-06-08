@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 22.03.02
+.VERSION 22.06.07
 
 .GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
 
@@ -18,7 +18,7 @@
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES
+.EXTERNALMODULEDEPENDENCIES Hyper-V Management PowerShell Modules
 
 .REQUIREDSCRIPTS
 
@@ -164,7 +164,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                  D  E  P  L  O  Y                                                    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin                      Version 22.03.02                                  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin                      Version 22.06.07                                  "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
     Write-Host -Object ""
 }
@@ -260,7 +260,7 @@ $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......22.03.02"
+Write-Log -Type Conf -Evt "Utility Version:.......22.06.07"
 Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
 Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."

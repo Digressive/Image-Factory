@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 22.03.02
+.VERSION 22.06.07
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -18,7 +18,7 @@
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES
+.EXTERNALMODULEDEPENDENCIES Microsoft Deployment Toolkit PowerShell Modules, Hyper-V Management PowerShell Modules
 
 .REQUIREDSCRIPTS
 
@@ -33,10 +33,9 @@
     Image Factory Utility - Automate creation of WIM files.
 
     .DESCRIPTION
-    This script will create disposable Hyper-V virtual machines to generate WIM files from Microsoft Deployment
-    Toolkit task sequences.
+    This script will create disposable virtual machines to generate WIM files from Microsoft Deployment Toolkit task sequences.
 
-    This script should be run on a device with the MDT and Hyper-V PowerShell management modules installed.
+    This script should be run on a device with the MDT PowerShell management modules installed and Hyper-V modules if using Hyper-V.
 
     To send a log file via e-mail using ssl and an SMTP password you must generate an encrypted password file.
     The password file is unique to both the user and machine.
@@ -89,6 +88,12 @@
     The file name will be Image-Factory_YYYY-MM-dd_HH-mm-ss.log.
     Do not add a trailing \ backslash.
 
+    .PARAMETER LogRotate
+    Instructs the utility to remove logs older than a specified number of days.
+
+    .PARAMETER Help
+    Show usage help in the command line.
+
     .PARAMETER Subject
     The subject line for the e-mail log.
     Encapsulate with single or double quotes.
@@ -129,27 +134,24 @@
 ## Set up command line switches.
 [CmdletBinding()]
 Param(
-    [parameter(Mandatory=$True)]
     [alias("Build")]
-    $MdtBuildPath,
-    [parameter(Mandatory=$True)]
+    $MdtBuildPathUsr,
     [alias("Deploy")]
     $MdtDeployPath,
-    [parameter(Mandatory=$True)]
     [alias("TS")]
     $TsId,
     [alias("VH")]
     $VmHost,
-    [parameter(Mandatory=$True)]
     [alias("VHD")]
-    $VhdPath,
-    [parameter(Mandatory=$True)]
+    $VhdPathUsr,
     [alias("Boot")]
     $BootMedia,
     [alias("VNic")]
     $VmNic,
     [alias("L")]
-    $LogPath,
+    $LogPathUsr,
+    [alias("LogRotate")]
+    $LogHistory,
     [alias("Subject")]
     $MailSubject,
     [alias("SendTo")]
@@ -169,438 +171,674 @@ Param(
     [switch]$Compat,
     [switch]$VBox,
     [switch]$Remote,
+    [switch]$Help,
     [switch]$NoBanner)
 
-    If ($NoBanner -eq $False)
-    {
-        Write-Host -Object ""
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  .___                  ___________              __                         ____ ___   __  .__.__  .__  __            "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |   | _____    ____   \_   _____/____    _____/  |_  ___________ ___.__. |    |   \_/  |_|__|  | |__|/  |_ ___.__.  "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |   |/     \  / ___\   |    __) \__  \ _/ ___\   __\/  _ \_  __ <   |  | |    |   /\   __\  |  | |  \   __<   |  |  "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |  "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "            \//_____/        \/        \/     \/                   \/                                        \/       "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                Mike Galvin    https://gal.vin      Version 22.03.02                                                  "
-        Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                                      "
-        Write-Host -Object ""
-    }
-
-## If logging is configured, start logging.
-## If the log file already exists, clear it.
-If ($LogPath)
+If ($NoBanner -eq $False)
 {
-    ## Make sure the log directory exists.
-    $LogPathFolderT = Test-Path $LogPath
-
-    If ($LogPathFolderT -eq $False)
-    {
-        New-Item $LogPath -ItemType Directory -Force | Out-Null
-    }
-
-    $LogFile = ("Image-Factory_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
-    $Log = "$LogPath\$LogFile"
-
-    $LogT = Test-Path -Path $Log
-
-    If ($LogT)
-    {
-        Clear-Content -Path $Log
-    }
-
-    Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log started"
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "
+  .___                  ___________              __                         ____ ___   __  .__.__  .__  __            
+  |   | _____    ____   \_   _____/____    _____/  |_  ___________ ___.__. |    |   \_/  |_|__|  | |__|/  |_ ___.__.  
+  |   |/     \  / ___\   |    __) \__  \ _/ ___\   __\/  _ \_  __ <   |  | |    |   /\   __\  |  | |  \   __<   |  |  
+  |   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |  
+  |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  
+            \//_____/        \/        \/     \/                   \/                                        \/       
+                                          Mike Galvin               Version 22.06.07                                  
+                                        https://gal.vin            See -help for usage                                
+                                           Donate: https://www.paypal.me/digressive                                   
+"
 }
 
-## Function to get date in specific format.
-Function Get-DateFormat
+If ($PSBoundParameters.Values.Count -eq 0 -or $Help)
 {
-    Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    Write-Host -Object "Usage:
+    From a terminal run: [path\]Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$
+    -Vh VS01 -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote
+    -Ts W11-21H2,W10-21H2,WS22-DC
+
+    The above command will build WIM files from the task sequences W11-21H2, W10-21H2 and WS22-DC.
+    They will be imported to the deployment share on MDT01.
+    The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host.
+    The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host.
+    The virtual switch used by the VMs will be called vSwitch-Ext.
+
+    -VHD C:\Hyper-V\VHD
+    VHD config local to the Virtual Host, if it's not set it will use the Hyper-V default.
+    Not sure about Virtual Box
+
+    -Compat should only be used in very specific situations.
+    Use this switch if the Hyper-V server is Windows Server 2012 R2 and the script is running on
+    Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so
+    it can manage WS2012 R2 Hyper-V VMs.
+
+    To output a log: -L [path]. To remove logs produced by the utility older than X days: -LogRotate [number].
+    Run with no ASCII banner: -NoBanner
+
+    To use the 'email log' function:
+    Specify the subject line with -Subject ""'[subject line]'"" If you leave this blank a default subject will be used
+    Make sure to encapsulate it with double & single quotes as per the example for Powershell to read it correctly.
+    Specify the 'to' address with -SendTo [example@contoso.com]
+    Specify the 'from' address with -From [example@contoso.com]
+    Specify the SMTP server with -Smtp [smtp server name]
+    Specify the port to use with the SMTP server with -Port [port number].
+    If none is specified then the default of 25 will be used.
+    Specify the user to access SMTP with -User [example@contoso.com]
+    Specify the password file to use with -Pwd [path\]ps-script-pwd.txt.
+    Use SSL for SMTP server connection with -UseSsl.
+
+    To generate an encrypted password file run the following commands
+    on the computer and the user that will run the script:
+"
+    Write-Host -Object '    $creds = Get-Credential
+    $creds.Password | ConvertFrom-SecureString | Set-Content [path\]ps-script-pwd.txt'
 }
 
-## Function for logging.
-Function Write-Log($Type, $Evt)
-{
-    If ($Type -eq "Info")
+else {
+    ## If logging is configured, start logging.
+    ## If the log file already exists, clear it.
+    If ($LogPathUsr)
     {
-        If ($Null -ne $LogPath)
-        {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Evt"
-        }
-        
-        Write-Host -Object "$(Get-DateFormat) [INFO] $Evt"
-    }
+        ## Clean User entered string
+        $LogPath = $LogPathUsr.trimend('\')
 
-    If ($Type -eq "Succ")
-    {
-        If ($Null -ne $LogPath)
+        ## Make sure the log directory exists.
+        If ((Test-Path -Path $LogPath) -eq $False)
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Evt"
-        }
-
-        Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Evt"
-    }
-
-    If ($Type -eq "Err")
-    {
-        If ($Null -ne $LogPath)
-        {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Evt"
+            New-Item $LogPath -ItemType Directory -Force | Out-Null
         }
 
-        Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Evt"
+        $LogFile = ("Image-Factory_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
+        $Log = "$LogPath\$LogFile"
+
+        If (Test-Path -Path $Log)
+        {
+            Clear-Content -Path $Log
+        }
     }
 
-    If ($Type -eq "Conf")
+    ## Function to get date in specific format.
+    Function Get-DateFormat
     {
-        If ($Null -ne $LogPath)
+        Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    }
+
+    ## Function for logging.
+    Function Write-Log($Type, $Evt)
+    {
+        If ($Type -eq "Info")
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$Evt"
+            If ($LogPathUsr)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Evt"
+            }
+            
+            Write-Host -Object "$(Get-DateFormat) [INFO] $Evt"
         }
 
-        Write-Host -ForegroundColor Cyan -Object "$Evt"
+        If ($Type -eq "Succ")
+        {
+            If ($LogPathUsr)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Evt"
+            }
+
+            Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Evt"
+        }
+
+        If ($Type -eq "Err")
+        {
+            If ($LogPathUsr)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Evt"
+            }
+
+            Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Evt"
+        }
+
+        If ($Type -eq "Conf")
+        {
+            If ($LogPathUsr)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$Evt"
+            }
+
+            Write-Host -ForegroundColor Cyan -Object "$Evt"
+        }
     }
-}
 
-## If not configured set VmHost to local
-If ($Null -eq $VmHost)
-{
-    $VmHost = $Env:ComputerName
-}
-
-## getting Windows Version info
-$OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
-$OSVMin = [environment]::OSVersion.Version | Select-Object -expand minor
-$OSVBui = [environment]::OSVersion.Version | Select-Object -expand build
-$OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
-
-##
-## Display the current config and log if configured.
-##
-Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......22.03.02"
-Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
-Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
-Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPath."
-Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
-Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
-Write-Log -Type Conf -Evt "TS ID's:...............$TsId."
-Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
-Write-Log -Type Conf -Evt "VHD path:..............$VhdPath."
-Write-Log -Type Conf -Evt "Boot media path:.......$BootMedia."
-
-If ($Null -ne $VmNic)
-{
-    Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
-}
-
-else {
-    Write-Log -Type Conf -Evt "Virtual NIC name:......No Config"
-}
-
-If ($Null -ne $LogPath)
-{
-    Write-Log -Type Conf -Evt "Logs directory:........$LogPath."
-}
-
-else {
-    Write-Log -Type Conf -Evt "Logs directory:........No Config"
-}
-
-If ($MailTo)
-{
-    Write-Log -Type Conf -Evt "E-mail log to:.........$MailTo."
-}
-
-else {
-    Write-Log -Type Conf -Evt "E-mail log to:.........No Config"
-}
-
-If ($MailFrom)
-{
-    Write-Log -Type Conf -Evt "E-mail log from:.......$MailFrom."
-}
-
-else {
-    Write-Log -Type Conf -Evt "E-mail log from:.......No Config"
-}
-
-If ($MailSubject)
-{
-    Write-Log -Type Conf -Evt "E-mail subject:........$MailSubject."
-}
-
-else {
-    Write-Log -Type Conf -Evt "E-mail subject:........Default"
-}
-
-If ($SmtpServer)
-{
-    Write-Log -Type Conf -Evt "SMTP server:...........$SmtpServer."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP server:...........No Config"
-}
-
-If ($SmtpPort)
-{
-    Write-Log -Type Conf -Evt "SMTP Port:.............$SmtpPort."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP Port:.............Default"
-}
-
-If ($SmtpUser)
-{
-    Write-Log -Type Conf -Evt "SMTP user:.............$SmtpUser."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP user:.............No Config"
-}
-
-If ($SmtpPwd)
-{
-    Write-Log -Type Conf -Evt "SMTP pwd file:.........$SmtpPwd."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP pwd file:.........No Config"
-}
-
-Write-Log -Type Conf -Evt "-UseSSL switch:........$UseSsl."
-Write-Log -Type Conf -Evt "-VBox switch:..........$VBox."
-Write-Log -Type Conf -Evt "-Compat switch:........$Compat."
-Write-Log -Type Conf -Evt "-Remote switch:........$Remote."
-Write-Log -Type Conf -Evt "************************************************************"
-Write-Log -Type Info -Evt "Process started"
-##
-## Display current config ends here.
-##
-
-## If the -compat switch is used, load the older Hyper-V PS module.
-If ($Vbox -eq $false)
-{
-    If ($Compat)
+    ## Config checks for conflicting options, needless options.
+    If ($Null -eq $MdtBuildPathUsr)
     {
-        Write-Log -Type Info -Evt "Importing Hyper-V 1.1 PowerShell Module"
-        Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
-    }
-}
-
-else {
-    $VBoxLoc = "C:\Program Files\Oracle\VirtualBox"
-}
-
-## Import the Deployment Toolkit PowerShell module.
-Write-Log -Type Info -Evt "Importing MDT PowerShell Module"
-Import-Module "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
-
-## Create a new PSDrive to the configured MDT deploy path.
-Write-Log -Type Info -Evt "Creating PSDrive to $MdtDeployPath"
-New-PSDrive -Name "ImgFacDeploy" -PSProvider MDTProvider -Root $MdtDeployPath | Out-Null
-
-## For Progress bar
-$i = 0
-
-##
-## For each of the Task Sequence ID's configured, run the build process.
-##
-ForEach ($Id in $TsId)
-{
-    ## Progress Bar based on progress through the TS ID's
-    Write-Progress -Id 0 -Activity "Processing" -Status "Current TSID: $Id" -PercentComplete ($i/$TsId.count*100)
-
-    ## Test to see if the build environment is dirty from another run, if it is exit the script.
-    $EnvDirtyTest = Test-Path -Path $MdtBuildPath\Control\CustomSettings-backup.ini
-    If ($EnvDirtyTest)
-    {
-        Write-Log -Type Err -Evt "CustomSettings-backup.ini already exists."
-        Write-Log -Type Err -Evt "The build environment is dirty."
-        Write-Log -Type Err -Evt "Did the script finish successfully last time it was run?"
+        Write-Log -Type Err -Evt "The Build share is not specified."
         Exit
     }
 
-    Write-Log -Type Info -Evt "Start of Task Sequence ID: $Id"
-    Write-Log -Type Info -Evt "(TSID:$Id) Backing up current MDT CustomSettings.ini"
-
-    ## Backup the existing CustomSettings.ini.
-    Copy-Item $MdtBuildPath\Control\CustomSettings.ini $MdtBuildPath\Control\CustomSettings-backup.ini
-    Start-Sleep -Seconds 5
-
-    Write-Log -Type Info -Evt "(TSID:$Id) Setting MDT CustomSettings.ini for Task Sequence"
-
-    ## Setup MDT CustomSettings.ini for auto deploy.
-    Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
-    Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
-    Add-Content $MdtBuildPath\Control\CustomSettings.ini "TaskSequenceID=$Id"
-    Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipTaskSequence=YES"
-    Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipComputerName=YES"
-
-    ## Set the VM name as build + the date and time.
-    $VmName = ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
-
-    Write-Log -Type Info -Evt "(TSID:$Id) Creating VM: $VmName on $VmHost"
-    Write-Log -Type Info -Evt "(TSID:$Id) Adding VHD: $VhdPath\$VmName.vhdx"
-    Write-Log -Type Info -Evt "(TSID:$Id) Adding Virtual NIC: $VmNic"
-
-    If ($Vbox -eq $false)
+    If ($Null -eq $MdtDeployPath)
     {
-        ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
-        New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost | Out-Null
+        Write-Log -Type Err -Evt "The Deployment share is not specified."
+        Exit
+    }
+
+    If ($Null -eq $TsId)
+    {
+        Write-Log -Type Err -Evt "No Task Sequence IDs are specified."
+        Exit
+    }
+
+    If ($Null -eq $BootMedia)
+    {
+        Write-Log -Type Err -Evt "The boot media is not specified."
+        Exit
+    }
+
+    If ($Null -eq $VmNic)
+    {
+        If ($Vbox -eq $false)
+        {
+            Write-Log -Type Err -Evt "The virtual NIC is not specified."
+            Exit
+        }
     }
 
     else {
-        & $VBoxLoc\VBoxManage createvm --name $VmName --ostype "Windows10_64" --register
+        If ($Vbox -eq $true)
+        {
+            Write-Log -Type Info -Evt "This setting is ignored with Virtual Box."
+            Exit
+        }
     }
 
-    Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM Processor Count"
-    Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM Static Memory"
-    Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM to boot from $BootMedia"
-
-    If ($Vbox -eq $false)
+    If ($Null -ne $Vmhost -AND $Vbox -eq $True)
     {
-        ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
-        ## Set the boot CD to the configured ISO.
-        ## Start the VM
-        Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
-        Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost
-        Write-Log -Type Info -Evt "(TSID:$Id) Starting $VmName on $VmHost"
-        Start-VM $VmName -ComputerName $VmHost
+        Write-Log -Type Err -Evt "The VM host does not need to be configured with the -VBox switch."
+        Exit
     }
 
-    else {
-        & $VBoxLoc\VBoxManage modifyvm $VmName --cpus 2
-        & $VBoxLoc\VBoxManage modifyvm $VmName --memory 2048 --vram 128
-        ## Testing
-        # & $VBoxLoc\VBoxManage modifyvm $VmName --memory 4096 --vram 128
-        & $VBoxLoc\VBoxManage modifyvm $VmName --nic1 nat
-        & $VBoxLoc\VBoxManage createhd --filename $VhdPath\$VmName.vdi --size 130048 --format VDI
-        & $VBoxLoc\VBoxManage storagectl $VmName --name "SATA Controller" --add sata --controller IntelAhci
-        & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $VhdPath\$VmName.vdi
-        & $VBoxLoc\VBoxManage storagectl $VmName --name "IDE Controller" --add ide --controller PIIX4
-        & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $BootMedia
-        & $VBoxLoc\VBoxManage modifyvm $VmName --boot1 dvd --boot2 disk --boot3 none --boot4 none
-        Write-Log -Type Info -Evt "(TSID:$Id) Waiting for $VmName to shutdown"
-        & $VBoxLoc\VBoxHeadless --startvm $VmName
-    }
-
-    If ($Vbox -eq $false)
+    ## If not configured set VmHost to local
+    If ($Null -eq $VmHost)
     {
-        ## Wait until the VM is turned off.
-        Write-Log -Type Info -Evt "(TSID:$Id) Waiting for $VmName to shutdown"
-        While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
-    }
-
-    If ($Vbox -eq $false)
-    {
-        ## If -remote switch is set, remove the VMs VHD's from the remote server.
-        ## If switch is not set, the VM's VHDs are removed from the local computer.
         If ($Remote)
         {
-            $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
-            $Disks = Get-VHD -VMId $VmBye.Id -ComputerName $VmHost
-            Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
-            Invoke-Command {Remove-Item $using:disks.path -Force} -ComputerName $VmBye.ComputerName
-            Start-Sleep -Seconds 5
+            If ($Vbox)
+            {
+                Write-Log -Type Err -Evt "The -Remote switch has no effect with Virtual Box, Virtual Box must be installed locally."
+                Exit
+            }
+
+            Write-Log -Type Err -Evt "You must specify the remote VM host when the -Remote switch is set."
+            Exit
+        }
+
+        $VmHost = $Env:ComputerName
+
+        If ($Vbox)
+        {
+            $VBoxLoc = "C:\Program Files\Oracle\VirtualBox"
+
+            If ((Test-Path -Path $VBoxLoc) -eq $False)
+            {
+                Write-Log -Type Err -Evt "Virtual Box is not installed on this local machine."
+                Exit
+            }
         }
 
         else {
-            $VmLocal = Get-VM -Name $VmName -ComputerName $VmHost
-            Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
-            Remove-Item $VmLocal.HardDrives.Path -Force
-        }
-    }
+            ## Test for Hyper-V feature installed on local machine.
+            try {
+                $HvFeature = Get-Service vmcompute -ErrorAction Stop
+            }
 
-    If ($Vbox -eq $false)
-    {
-        Remove-VM $VmName -ComputerName $VmHost -Force
+            catch {
+                Write-Log -Type Err -Evt "Hyper-V is not installed on this local machine."
+                Exit
+            }
+        }
     }
 
     else {
-        ## Remove VBox VM and Files here
-        & $VBoxLoc\VBoxManage unregistervm $VmName --delete
+        If ($Remote -eq $False)
+        {
+            Write-Log -Type Err -Evt "You must use the -Remote switch when specifying a remote VM host."
+            Exit
+        }
     }
 
-    ## Restore CustomSettings.ini from the backup.
-    Write-Log -Type Info -Evt "(TSID:$Id) Restoring MDT CustomSettings.ini from backup"
-    Remove-Item $MdtBuildPath\Control\CustomSettings.ini
-    Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
-
-    ## For each of the the WIM files in the captures folder of the build share, import
-    ## them into the MDT Operating Systems folder.
-    $Wims = Get-ChildItem $MdtBuildPath\Captures\$Id`_*-*-*-*-*.wim
-
-    ForEach ($File in $Wims)
+    ## If not configured set VhdPath to the default
+    If ($Null -eq $VhdPathUsr)
     {
-        Write-Log -Type Info -Evt "(TSID:$Id) Importing WIM File: $File"
-        Import-MDTOperatingSystem -Path "ImgFacDeploy:\Operating Systems" -SourceFile $File -DestinationFolder $File.Name | Out-Null
-        Rename-Item -Path "ImgFacDeploy:\Operating Systems\$Id* in $Id`_*-*-*-*-*.wim $Id`_*-*-*-*-*.wim" -NewName ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
+        If ($Vbox -eq $false)
+        {
+            $VhdPathUsr = Get-VMHost -Computer $VmHost | Select-Object VirtualHardDiskPath -ExpandProperty VirtualHardDiskPath
+        }
+
+        else {
+            Write-Log -Type Err -Evt "You must configure a VHD storage path when using Virtual Box."
+            Exit
+        }
     }
 
-    ## Cleanup the WIM files in the captures folder of the build share.
-    Write-Log -Type Info -Evt "(TSID:$Id) Removing captured WIM file"
-    Remove-Item $MdtBuildPath\Captures\$Id`_*-*-*-*-*.wim
-    Write-Log -Type Info -Evt "End of Task Sequence ID: $Id"
+    If ($Compat -AND $Vbox)
+    {
+        Write-Log -Type Err -Evt "The -Compat switch has no effect with the -VBox switch."
+        Exit
+    }
 
-    ## Increase count for progress bar
-    $i = $i+1
-}
-##
-## End of the build and capture process for TS's
-##
+    ## getting Windows Version info
+    $OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
+    $OSVMin = [environment]::OSVersion.Version | Select-Object -expand minor
+    $OSVBui = [environment]::OSVersion.Version | Select-Object -expand build
+    $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 
-Write-Log -Type Info -Evt "Process finished"
+    ##
+    ## Display the current config and log if configured.
+    ##
+    Write-Log -Type Conf -Evt "************ Running with the following config *************."
+    Write-Log -Type Conf -Evt "Utility Version:.......22.06.07"
+    Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
+    Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 
-## If logging is configured then finish the log file.
-If ($LogPath)
-{
-    Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log finished"
+    If ($MdtBuildPathUsr)
+    {
+        Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPathUsr."
+    }
 
-    ## This whole block is for e-mail, if it is configured.
+    If ($MdtDeployPath)
+    {
+        Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
+    }
+
+    If ($TsId)
+    {
+        Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
+        Write-Log -Type Conf -Evt "TS ID's:..............."
+        ForEach ($Id in $TsId)
+        {
+            Write-Log -Type Conf -Evt ".......................$Id"
+        }
+    }
+
+    If ($VmHost)
+    {
+        Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
+    }
+
+    If ($VhdPathUsr)
+    {
+        Write-Log -Type Conf -Evt "VHD path:..............$VhdPathUsr."
+    }
+
+    If ($BootMedia)
+    {
+        Write-Log -Type Conf -Evt "Boot media path:.......$BootMedia."
+    }
+
+    If ($VmNic)
+    {
+        Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
+    }
+
+    If ($LogPathUsr)
+    {
+        Write-Log -Type Conf -Evt "Logs directory:........$LogPath."
+    }
+
+    If ($Null -ne $LogHistory)
+    {
+        Write-Log -Type Conf -Evt "Logs to keep:..........$LogHistory days."
+    }
+
+    If ($MailTo)
+    {
+        Write-Log -Type Conf -Evt "E-mail log to:.........$MailTo."
+    }
+
+    If ($MailFrom)
+    {
+        Write-Log -Type Conf -Evt "E-mail log from:.......$MailFrom."
+    }
+
+    If ($MailSubject)
+    {
+        Write-Log -Type Conf -Evt "E-mail subject:........$MailSubject."
+    }
+
     If ($SmtpServer)
     {
-        ## Default e-mail subject if none is configured.
-        If ($Null -eq $MailSubject)
+        Write-Log -Type Conf -Evt "SMTP server:...........$SmtpServer."
+    }
+
+    If ($SmtpPort)
+    {
+        Write-Log -Type Conf -Evt "SMTP Port:.............$SmtpPort."
+    }
+
+    If ($SmtpUser)
+    {
+        Write-Log -Type Conf -Evt "SMTP user:.............$SmtpUser."
+    }
+
+    If ($SmtpPwd)
+    {
+        Write-Log -Type Conf -Evt "SMTP pwd file:.........$SmtpPwd."
+    }
+
+    If ($SmtpServer)
+    {
+        Write-Log -Type Conf -Evt "-UseSSL switch:........$UseSsl."
+    }
+
+    If ($VBox)
+    {
+        Write-Log -Type Conf -Evt "-VBox switch:..........$VBox."
+    }
+
+    If ($Compat)
+    {
+        Write-Log -Type Conf -Evt "-Compat switch:........$Compat."
+    }
+
+    If ($Remote)
+    {
+        Write-Log -Type Conf -Evt "-Remote switch:........$Remote."
+    }
+    Write-Log -Type Conf -Evt "************************************************************"
+    Write-Log -Type Info -Evt "Process started"
+    ##
+    ## Display current config ends here.
+    ##
+
+    ##Clean the user paths
+    $VhdPath = $VhdPathUsr.trimend('\')
+    $MdtBuildPath = $MdtBuildPathUsr.trimend('\')
+
+    ## If the -Compat switch is used, load the older Hyper-V PS module.
+    If ($Vbox -eq $false)
+    {
+        If ($Compat)
         {
-            $MailSubject = "Image Factory Utility Log"
+            Write-Log -Type Info -Evt "Importing Hyper-V 1.1 PowerShell Module"
+            Import-Module $env:windir\System32\WindowsPowerShell\v1.0\Modules\Hyper-V\1.1\Hyper-V.psd1
+        }
+    }
+
+    ## If the -VBox switch is used, set the location of the default Virtual Box installation.
+    else {
+        $VBoxLoc = "C:\Program Files\Oracle\VirtualBox"
+    }
+
+    ## Import the Deployment Toolkit PowerShell module.
+    Write-Log -Type Info -Evt "Importing MDT PowerShell Module"
+    Import-Module "$env:programfiles\Microsoft Deployment Toolkit\bin\MicrosoftDeploymentToolkit.psd1"
+
+    ## Create a new PSDrive to the configured MDT deploy path.
+    Write-Log -Type Info -Evt "Creating PSDrive to $MdtDeployPath"
+    New-PSDrive -Name "ImgFacDeploy" -PSProvider MDTProvider -Root $MdtDeployPath | Out-Null
+
+    ## For Progress bar
+    $i = 0
+
+    ##
+    ## For each of the Task Sequence ID's configured, run the build process.
+    ##
+    ForEach ($Id in $TsId)
+    {
+        ## Progress Bar based on progress through the TS ID's
+        Write-Progress -Id 0 -Activity "Processing" -Status "Current TSID: $Id" -PercentComplete ($i/$TsId.count*100)
+
+        ## Test to see if the build environment is dirty from another run, if it is exit the script.
+        If (Test-Path -Path $MdtBuildPath\Control\CustomSettings-backup.ini)
+        {
+            Write-Log -Type Err -Evt "CustomSettings-backup.ini already exists."
+            Write-Log -Type Err -Evt "The build environment is dirty."
+            Write-Log -Type Err -Evt "Did the script finish successfully last time it was run?"
+            Exit
         }
 
-        ## Default Smtp Port if none is configured.
-        If ($Null -eq $SmtpPort)
+        Write-Log -Type Info -Evt "(TSID:$Id) Start of Task Sequence ID: $Id"
+        Write-Log -Type Info -Evt "(TSID:$Id) Backing up current MDT CustomSettings.ini"
+
+        ## Backup the existing CustomSettings.ini.
+        Copy-Item $MdtBuildPath\Control\CustomSettings.ini $MdtBuildPath\Control\CustomSettings-backup.ini
+        Start-Sleep -Seconds 5
+
+        Write-Log -Type Info -Evt "(TSID:$Id) Setting MDT CustomSettings.ini for Task Sequence"
+
+        ## Setup MDT CustomSettings.ini for auto deploy.
+        Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
+        Add-Content $MdtBuildPath\Control\CustomSettings.ini ""
+        Add-Content $MdtBuildPath\Control\CustomSettings.ini "TaskSequenceID=$Id"
+        Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipTaskSequence=YES"
+        Add-Content $MdtBuildPath\Control\CustomSettings.ini "SkipComputerName=YES"
+
+        ## Set the VM name as build + the date and time.
+        $VmName = ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
+
+        Write-Log -Type Info -Evt "(TSID:$Id) Creating VM: $VmName on $VmHost"
+        Write-Log -Type Info -Evt "(TSID:$Id) Adding VHD: $VhdPath\$VmName.vhdx"
+
+        If ($VmNic)
         {
-            $SmtpPort = "25"
+            Write-Log -Type Info -Evt "(TSID:$Id) Adding Virtual NIC: $VmNic"
         }
 
-        ## Setting the contents of the log to be the e-mail body.
-        $MailBody = Get-Content -Path $Log | Out-String
-
-        ## If an smtp password is configured, get the username and password together for authentication.
-        ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
-        If ($SmtpPwd)
+        If ($Vbox -eq $false)
         {
-            $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
-            $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
+            ## Create the VM with 4GB Dynamic RAM, Gen 1, 127GB VHD, and add the configured vNIC.
+            try {
+                New-VM -name $VmName -MemoryStartupBytes 4096MB -BootDevice CD -Generation 1 -NewVHDPath $VhdPath\$VmName.vhdx -NewVHDSizeBytes 130048MB -SwitchName $VmNic -ComputerName $VmHost -ErrorAction Stop | Out-Null
+            }
 
-            ## If -ssl switch is used, send the email with SSL.
-            ## If it isn't then don't use SSL, but still authenticate with the credentials.
-            If ($UseSsl)
+            catch {
+                Write-Log -Type Err -Evt "(TSID:$Id) $_"
+
+                ## Restore CustomSettings.ini from the backup.
+                Write-Log -Type Info -Evt "(TSID:$Id) Restoring MDT CustomSettings.ini from backup"
+                Remove-Item $MdtBuildPath\Control\CustomSettings.ini
+                Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
+                Exit
+            }
+        }
+
+        else {
+            & $VBoxLoc\VBoxManage createvm --name $VmName --ostype "Windows10_64" --register
+        }
+
+        Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM Processor Count"
+        Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM Static Memory"
+        Write-Log -Type Info -Evt "(TSID:$Id) Configuring VM to boot from $BootMedia"
+
+        If ($Vbox -eq $false)
+        {
+            ## Configure the VM with 2 vCPUs, static RAM and disable checkpoints.
+            ## Set the boot CD to the configured ISO.
+            ## Start the VM
+            Set-VM $VmName -ProcessorCount 2 -StaticMemory -AutomaticCheckpointsEnabled $false -ComputerName $VmHost
+
+            try {
+                Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $BootMedia -ComputerName $VmHost -ErrorAction Stop
+            }
+
+            catch {
+                Write-Log -Type Err -Evt "(TSID:$Id) $_"
+
+                ## If -Remote switch is set, remove the VMs VHD's from the remote server.
+                ## If switch is not set, the VM's VHDs are removed from the local computer.
+                If ($Remote)
+                {
+                    $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
+                    $Disks = Get-VHD -VMId $VmBye.Id -ComputerName $VmHost
+                    Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
+                    Invoke-Command {Remove-Item $using:disks.path -Force} -ComputerName $VmBye.ComputerName
+                    Start-Sleep -Seconds 5
+                }
+
+                else {
+                    $VmLocal = Get-VM -Name $VmName -ComputerName $VmHost
+                    Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
+                    Remove-Item $VmLocal.HardDrives.Path -Force
+                }
+
+                ## Remove Hyper-V VM from remote or local
+                Remove-VM $VmName -ComputerName $VmHost -Force
+
+                ## Restore CustomSettings.ini from the backup.
+                Write-Log -Type Info -Evt "(TSID:$Id) Restoring MDT CustomSettings.ini from backup"
+                Remove-Item $MdtBuildPath\Control\CustomSettings.ini
+                Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
+                Exit
+            }
+
+            Write-Log -Type Info -Evt "(TSID:$Id) Starting $VmName on $VmHost"
+            Start-VM $VmName -ComputerName $VmHost
+        }
+
+        else {
+            & $VBoxLoc\VBoxManage modifyvm $VmName --cpus 2
+            & $VBoxLoc\VBoxManage modifyvm $VmName --memory 2048 --vram 128
+            & $VBoxLoc\VBoxManage modifyvm $VmName --nic1 nat
+            & $VBoxLoc\VBoxManage createhd --filename $VhdPath\$VmName.vdi --size 130048 --format VDI
+            & $VBoxLoc\VBoxManage storagectl $VmName --name "SATA Controller" --add sata --controller IntelAhci
+            & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium $VhdPath\$VmName.vdi
+            & $VBoxLoc\VBoxManage storagectl $VmName --name "IDE Controller" --add ide --controller PIIX4
+            & $VBoxLoc\VBoxManage storageattach $VmName --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium $BootMedia
+            & $VBoxLoc\VBoxManage modifyvm $VmName --boot1 dvd --boot2 disk --boot3 none --boot4 none
+            Write-Log -Type Info -Evt "(TSID:$Id) Waiting for $VmName to shutdown"
+            & $VBoxLoc\VBoxHeadless --startvm $VmName
+        }
+
+        If ($Vbox -eq $false)
+        {
+            ## Wait until the VM is turned off.
+            Write-Log -Type Info -Evt "(TSID:$Id) Waiting for $VmName to shutdown"
+            While ((Get-VM -Name $VmName -ComputerName $VmHost).state -ne 'Off') {Start-Sleep -Seconds 5}
+        }
+
+        If ($Vbox -eq $false)
+        {
+            ## If -Remote switch is set, remove the VMs VHD's from the remote server.
+            ## If switch is not set, the VM's VHDs are removed from the local computer.
+            If ($Remote)
             {
-                Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
+                $VmBye = Get-VM -Name $VmName -ComputerName $VmHost
+                $Disks = Get-VHD -VMId $VmBye.Id -ComputerName $VmHost
+                Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
+                Invoke-Command {Remove-Item $using:disks.path -Force} -ComputerName $VmBye.ComputerName
+                Start-Sleep -Seconds 5
             }
 
             else {
-                Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
+                $VmLocal = Get-VM -Name $VmName -ComputerName $VmHost
+                Write-Log -Type Info -Evt "(TSID:$Id) Deleting $VmName on $VmHost"
+                Remove-Item $VmLocal.HardDrives.Path -Force
             }
         }
 
-        else {
-            Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
+        If ($Vbox -eq $false)
+        {
+            Remove-VM $VmName -ComputerName $VmHost -Force
         }
-    }
-    ## End of Email block
-}
 
+        else {
+            ## Remove VBox VM and Files here
+            & $VBoxLoc\VBoxManage unregistervm $VmName --delete
+        }
+
+        ## Restore CustomSettings.ini from the backup.
+        Write-Log -Type Info -Evt "(TSID:$Id) Restoring MDT CustomSettings.ini from backup"
+        Remove-Item $MdtBuildPath\Control\CustomSettings.ini
+        Move-Item $MdtBuildPath\Control\CustomSettings-backup.ini $MdtBuildPath\Control\CustomSettings.ini
+
+        ## For each of the the WIM files in the captures folder of the build share, import
+        ## them into the MDT Operating Systems folder.
+        If (Test-Path -Path $MdtBuildPath\Captures\$Id`_*-*-*-*-*.wim -PathType Leaf)
+        {
+            $Wims = Get-ChildItem -Path $MdtBuildPath\Captures\$Id`_*-*-*-*-*.wim -File
+
+            ForEach ($File in $Wims)
+            {
+                Write-Log -Type Info -Evt "(TSID:$Id) Importing WIM File: $File"
+                Import-MDTOperatingSystem -Path "ImgFacDeploy:\Operating Systems" -SourceFile $File -DestinationFolder $File.Name | Out-Null
+                Rename-Item -Path "ImgFacDeploy:\Operating Systems\$Id* in $Id`_*-*-*-*-*.wim $Id`_*-*-*-*-*.wim" -NewName ("$Id`_{0:yyyy-MM-dd_HH-mm-ss}" -f (Get-Date))
+            }
+
+            ## Cleanup the WIM files in the captures folder of the build share.
+            Write-Log -Type Info -Evt "(TSID:$Id) Removing captured WIM file"
+            Remove-Item $MdtBuildPath\Captures\$Id`_*-*-*-*-*.wim
+        }
+
+        else {
+            Write-Log -Type Err -Evt "(TSID:$Id) No wim file found."
+        }
+
+        Write-Log -Type Info -Evt "(TSID:$Id) End of Task Sequence ID: $Id"
+
+        ## Increase count for progress bar
+        $i = $i+1
+    }
+    ##
+    ## End of the build and capture process for TS's
+    ##
+
+    Write-Log -Type Info -Evt "Process finished"
+
+    If ($Null -ne $LogHistory)
+    {
+        ## Cleanup logs.
+        Write-Log -Type Info -Evt "Deleting logs older than: $LogHistory days"
+        Get-ChildItem -Path "$LogPath\Image-Factory_*" -File | Where-Object CreationTime -lt (Get-Date).AddDays(-$LogHistory) | Remove-Item -Recurse
+    }
+
+    ## If logging is configured then finish the log file.
+    If ($LogPathUsr)
+    {
+        ## This whole block is for e-mail, if it is configured.
+        If ($SmtpServer)
+        {
+            If (Test-Path -Path $Log)
+            {
+                ## Default e-mail subject if none is configured.
+                If ($Null -eq $MailSubject)
+                {
+                    $MailSubject = "Image Factory Utility Log"
+                }
+
+                ## Default Smtp Port if none is configured.
+                If ($Null -eq $SmtpPort)
+                {
+                    $SmtpPort = "25"
+                }
+
+                ## Setting the contents of the log to be the e-mail body.
+                $MailBody = Get-Content -Path $Log | Out-String
+
+                ## If an smtp password is configured, get the username and password together for authentication.
+                ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
+                If ($SmtpPwd)
+                {
+                    $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
+                    $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
+
+                    ## If -ssl switch is used, send the email with SSL.
+                    ## If it isn't then don't use SSL, but still authenticate with the credentials.
+                    If ($UseSsl)
+                    {
+                        Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
+                    }
+
+                    else {
+                        Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
+                    }
+                }
+
+                else {
+                    Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
+                }
+            }
+            else {
+                Write-Host -ForegroundColor Red -BackgroundColor Black -Object "There's no log file to email."
+            }
+        }
+        ## End of Email block
+    }
+}
 ## End
