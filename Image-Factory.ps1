@@ -137,7 +137,7 @@ Param(
     [alias("Build")]
     $MdtBuildPathUsr,
     [alias("Deploy")]
-    $MdtDeployPath,
+    $MdtDeployPathUsr,
     [alias("TS")]
     $TsId,
     [alias("VH")]
@@ -313,7 +313,7 @@ else {
         Exit
     }
 
-    If ($Null -eq $MdtDeployPath)
+    If ($Null -eq $MdtDeployPathUsr)
     {
         Write-Log -Type Err -Evt "The Deployment share is not specified."
         Exit
@@ -442,9 +442,9 @@ else {
         Write-Log -Type Conf -Evt "Build share:...........$MdtBuildPathUsr."
     }
 
-    If ($MdtDeployPath)
+    If ($MdtDeployPathUsr)
     {
-        Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPath."
+        Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPathUsr."
     }
 
     If ($TsId)
@@ -550,6 +550,7 @@ else {
     ##Clean the user paths
     $VhdPath = $VhdPathUsr.trimend('\')
     $MdtBuildPath = $MdtBuildPathUsr.trimend('\')
+    $MdtDeployPath = $MdtDeployPathUsr.trimend('\')
 
     ## If the -Compat switch is used, load the older Hyper-V PS module.
     If ($Vbox -eq $false)
