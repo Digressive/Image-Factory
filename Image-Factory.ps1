@@ -169,8 +169,8 @@ Param(
     $SmtpPwd,
     [switch]$UseSsl,
     [switch]$Compat,
-    [switch]$VBox,
     [switch]$Remote,
+    [switch]$VBox,
     [switch]$Help,
     [switch]$NoBanner)
 
