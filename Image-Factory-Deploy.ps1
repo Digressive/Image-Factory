@@ -559,7 +559,11 @@ else {
 
         Write-Log -Type Info -Evt "(TSID:$Id) Creating VM: $VmName on $VmHost"
         Write-Log -Type Info -Evt "(TSID:$Id) Adding VHD: $VhdPath\$VmName.vhdx"
-        Write-Log -Type Info -Evt "(TSID:$Id) Adding Virtual NIC: $VmNic"
+
+        If ($VmNic)
+        {
+            Write-Log -Type Info -Evt "(TSID:$Id) Adding Virtual NIC: $VmNic"
+        }
 
         If ($Vbox -eq $false)
         {
