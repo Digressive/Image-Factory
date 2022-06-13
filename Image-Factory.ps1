@@ -33,102 +33,8 @@
     Image Factory Utility - Automate creation of WIM files.
 
     .DESCRIPTION
-    This script will create disposable virtual machines to generate WIM files from Microsoft Deployment Toolkit task sequences.
-
-    This script should be run on a device with the MDT PowerShell management modules installed and Hyper-V modules if using Hyper-V.
-
-    To send a log file via e-mail using ssl and an SMTP password you must generate an encrypted password file.
-    The password file is unique to both the user and machine.
-
-    To create the password file run this command as the user and on the machine that will use the file:
-
-    $creds = Get-Credential
-    $creds.Password | ConvertFrom-SecureString | Set-Content c:\scripts\ps-script-pwd.txt
-
-    .PARAMETER Build
-    Location of the build share. It can be the same as the deployment share, and it can be a local or UNC path.
-
-    .PARAMETER Deploy
-    Location of the deployment share. It can be the same as the deployment share, and it can be a local or UNC path.
-
-    .PARAMETER VH
-    Name of the Hyper-V host. Can be a local or remote device.
-
-    .PARAMETER VHD
-    The path relative to the Hyper-V server of where to put the VHD file for the VM(s) that will be generated.
-
-    .PARAMETER Boot
-    The path relative to the Hyper-V server of where the ISO file is to boot from.
-
-    .PARAMETER VNic
-    Name of the virtual switch that the virtual machine should use to communicate with the network.
-    If the name of the switch contains a space encapsulate with single or double quotes.
-
-    .PARAMETER TS
-    The comma-separated list of task sequence ID's to build.
-
-    .PARAMETER VBox
-    Use this switch to specify the use of Oracle Virtual Box instead of Hyper-V.
-    It is expected that Oracle Virtual Box is installed in the default location: C:\Program Files\Oracle\VirtualBox
-
-    .PARAMETER Compat
-    Use this switch if the Hyper-V server is Windows Server 2012 R2 and the script is running on
-    Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so
-    it can manage WS2012 R2 Hyper-V VMs.
-
-    .PARAMETER Remote
-    Use this switch if the Hyper-V server is a remote device.
-    Do not use this switch if the script is running on the same device as Hyper-V.
-
-    .PARAMETER NoBanner
-    Use this option to hide the ASCII art title in the console.
-
-    .PARAMETER L
-    The path to output the log file to.
-    The file name will be Image-Factory_YYYY-MM-dd_HH-mm-ss.log.
-    Do not add a trailing \ backslash.
-
-    .PARAMETER LogRotate
-    Instructs the utility to remove logs older than a specified number of days.
-
-    .PARAMETER Help
-    Show usage help in the command line.
-
-    .PARAMETER Subject
-    The subject line for the e-mail log.
-    Encapsulate with single or double quotes.
-    If no subject is specified, the default of "Image Factory Utility Log" will be used.
-
-    .PARAMETER SendTo
-    The e-mail address the log should be sent to.
-
-    .PARAMETER From
-    The e-mail address the log should be sent from.
-
-    .PARAMETER Smtp
-    The DNS name or IP address of the SMTP server.
-
-    .PARAMETER Port
-    The Port that should be used for the SMTP server.
-
-    .PARAMETER User
-    The user account to authenticate to the SMTP server.
-
-    .PARAMETER Pwd
-    The txt file containing the encrypted password for SMTP authentication.
-
-    .PARAMETER UseSsl
-    Configures the utility to connect to the SMTP server using SSL.
-
-    .EXAMPLE
-    Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$ -Vh VS01 -VHD C:\Hyper-V\VHD
-    -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote -Ts W11-21H2,W10-21H2,WS22-DC -L C:\scripts\logs -Subject 'Server: Image Factory'
-    -SendTo me@contoso.com -From imgfactory@contoso.com -Smtp smtp.outlook.com -User example@contoso.com -Pwd c:\scripts\ps-script-pwd.txt -UseSsl
-
-    The above command will build WIM files from the task sequences W11-21H2, W10-21H2 and WS22-DC. They will be imported to the deployment share on MDT01.
-    The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host.
-    The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host.
-    The virtual switch used by the VMs will be called vSwitch-Ext. The log file will be output to C:\scripts\logs and e-mailed with a custom subject line.
+    Will create disposable virtual machines to generate WIM files from Microsoft Deployment Toolkit Task Sequences.
+    Run with -help or no arguments for usage.
 #>
 
 ## Set up command line switches.
@@ -192,36 +98,38 @@ If ($NoBanner -eq $False)
 If ($PSBoundParameters.Values.Count -eq 0 -or $Help)
 {
     Write-Host -Object "Usage:
-    From a terminal run: [path\]Image-Factory.ps1 -Build \\mdt01\BuildShare$ -Deploy \\mdt01\DeploymentShare$
-    -Vh VS01 -Boot C:\iso\LiteTouchPE_x64.iso -Vnic vSwitch-Ext -Remote
-    -Ts W11-21H2,W10-21H2,WS22-DC
+    From a terminal run: [path\]Image-Factory.ps1 -Build [path\] -Deploy [path\] -Boot [path\]LiteTouchPE_x64.iso
+    -Vnic [virtual NIC name] -Ts W11-21H2,W10-21H2
+    This will use Hyper-V VMs on the local machine to build wim files from the task sequences W11-21H2 and W10-21H2.
+    The wim files will be imported to the deployment share specified.
 
-    The above command will build WIM files from the task sequences W11-21H2, W10-21H2 and WS22-DC.
-    They will be imported to the deployment share on MDT01.
-    The Hyper-V host used will be VS01 and the VHDs for the VMs generated will be stored in C:\Hyper-V\VHD on the host.
-    The boot ISO file will be C:\iso\LiteTouchPE_x64.iso, also located on the Hyper-V host.
-    The virtual switch used by the VMs will be called vSwitch-Ext.
+    Use -VH [hostname] to specify a remote Hyper-V server.
+    Please note that -Boot and -VHD paths will be local to the remote server.
 
-    -VHD C:\Hyper-V\VHD
-    VHD config local to the Virtual Host, if it's not set it will use the Hyper-V default.
-    Not sure about Virtual Box
+    Use -VHD [path\] to configure where to store the VM's VHD, if not the default.
+    The -Compat should only be used if a remote Hyper-V server is running Windows Server 2012 R2
+    and this script is running on a later version of Windows.
 
-    -Compat should only be used in very specific situations.
-    Use this switch if the Hyper-V server is Windows Server 2012 R2 and the script is running on
-    Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so
-    it can manage WS2012 R2 Hyper-V VMs.
+    Use -Remote when the Hyper-V server is a remote computer.
+    Use -VBox if using Virtual Box instead of Hyper-V as the VM platform.
 
-    To output a log: -L [path]. To remove logs produced by the utility older than X days: -LogRotate [number].
+    To output a log: -L [path\logs].
+    To remove logs produced by the utility older than X days: -LogRotate [number].
     Run with no ASCII banner: -NoBanner
 
     To use the 'email log' function:
     Specify the subject line with -Subject ""'[subject line]'"" If you leave this blank a default subject will be used
     Make sure to encapsulate it with double & single quotes as per the example for Powershell to read it correctly.
+
     Specify the 'to' address with -SendTo [example@contoso.com]
+    For multiple address, separate with a comma.
+
     Specify the 'from' address with -From [example@contoso.com]
     Specify the SMTP server with -Smtp [smtp server name]
+
     Specify the port to use with the SMTP server with -Port [port number].
     If none is specified then the default of 25 will be used.
+
     Specify the user to access SMTP with -User [example@contoso.com]
     Specify the password file to use with -Pwd [path\]ps-script-pwd.txt.
     Use SSL for SMTP server connection with -UseSsl.
