@@ -85,7 +85,7 @@ Here’s a list of all the command line switches and example configurations.
 | -VBox | Use this switch to use Oracle Virtual Box instead of Hyper-V | N/A |
 | -Compat | Legacy Hyper-V Only - Use this switch if the Hyper-V host is Windows Server 2012 R2 and the script is running on Windows 10 or Windows Server 2016/2019. This loads the older version of the Hyper-V module, so it can manage WS2012 R2 Hyper-V VMs. | N/A |
 | -Remote | Hyper-V Only - Use this switch if the Hyper-V server is a remote device. | N/A |
-| -L | The path to output the log file to. | [path\logs] |
+| -L | The path to output the log file to. | [path\] |
 | -LogRotate | Remove logs produced by the utility older than X days | [number] |
 | -NoBanner | Use this option to hide the ASCII art title in the console. | N/A |
 | -Help | Display usage information. No arguments also displays help. | N/A |
