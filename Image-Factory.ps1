@@ -293,7 +293,7 @@ else {
         else {
             ## Test for Hyper-V feature installed on local machine.
             try {
-                $HvFeature = Get-Service vmcompute -ErrorAction Stop
+                Get-Service vmcompute -ErrorAction Stop
             }
 
             catch {
