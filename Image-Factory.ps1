@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 22.06.07
+.VERSION 22.06.17
 
 .GUID 251ae35c-cc4e-417c-970c-848b221477fa
 
@@ -89,7 +89,7 @@ If ($NoBanner -eq $False)
   |   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |  
   |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  
             \//_____/        \/        \/     \/                   \/                                        \/       
-                                          Mike Galvin               Version 22.06.07                                  
+                                          Mike Galvin               Version 22.06.17                                  
                                         https://gal.vin            See -help for usage                                
                                            Donate: https://www.paypal.me/digressive                                   
 "
@@ -293,7 +293,14 @@ else {
         else {
             ## Test for Hyper-V feature installed on local machine.
             try {
-                Get-Service vmcompute -ErrorAction Stop
+                If ($OSV -eq "6.3.9600")
+                {
+                    Get-Service vmms -ErrorAction Stop
+                }
+
+                else {
+                    Get-Service vmcompute -ErrorAction Stop
+                }
             }
 
             catch {
@@ -347,7 +354,7 @@ else {
     ## Display the current config and log if configured.
     ##
     Write-Log -Type Conf -Evt "************ Running with the following config *************."
-    Write-Log -Type Conf -Evt "Utility Version:.......22.06.07"
+    Write-Log -Type Conf -Evt "Utility Version:.......22.06.17"
     Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
     Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 
