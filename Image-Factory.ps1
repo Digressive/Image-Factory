@@ -295,11 +295,11 @@ else {
             try {
                 If ($OSV -eq "6.3.9600")
                 {
-                    Get-Service vmms -ErrorAction Stop
+                    Get-Service vmms -ErrorAction Stop | Out-Null
                 }
 
                 else {
-                    Get-Service vmcompute -ErrorAction Stop
+                    Get-Service vmcompute -ErrorAction Stop | Out-Null
                 }
             }
 
