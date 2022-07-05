@@ -496,6 +496,9 @@ else {
     Write-Log -Type Info -Evt "Creating PSDrive to $MdtDeployPath"
     New-PSDrive -Name "ImgFacDeploy" -PSProvider MDTProvider -Root $MdtDeployPath | Out-Null
 
+    ## For Success/Fail stats
+    $Succi = 0
+
     ## For Progress bar
     $i = 0
 
@@ -696,6 +699,7 @@ else {
 
         ## Increase count for progress bar
         $i = $i+1
+        $Succi = $Succi+1
     }
     ##
     ## End of the build and capture process for TS's
@@ -743,16 +747,16 @@ else {
                     ## If it isn't then don't use SSL, but still authenticate with the credentials.
                     If ($UseSsl)
                     {
-                        Send-MailMessage -To $MailAddress -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
+                        Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
                     }
 
                     else {
-                        Send-MailMessage -To $MailAddress -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
+                        Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
                     }
                 }
 
                 else {
-                    Send-MailMessage -To $MailAddress -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
+                    Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
                 }
             }
         }
