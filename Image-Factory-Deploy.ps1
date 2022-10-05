@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 22.06.18
+.VERSION 22.10.05
 
 .GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
 
@@ -87,7 +87,7 @@ If ($NoBanner -eq $False)
   |   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |  
   |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  
             \//_____/        \/        \/     \/                   \/                                        \/       
-                                          Mike Galvin               Version 22.06.18                                  
+                                          Mike Galvin               Version 22.10.05                                  
                                         https://gal.vin            See -help for usage          -Deploy-              
                                            Donate: https://www.paypal.me/digressive                                   
 "
@@ -339,7 +339,7 @@ else {
     ## Display the current config and log if configured.
     ##
     Write-Log -Type Conf -Evt "************ Running with the following config *************."
-    Write-Log -Type Conf -Evt "Utility Version:.......22.06.18"
+    Write-Log -Type Conf -Evt "Utility Version:.......22.10.05"
     Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
     Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 
@@ -590,6 +590,7 @@ else {
 
             ## Change VM config to remove boot ISO.
             Set-VMDvdDrive -VMName $VmName -ControllerNumber 1 -ControllerLocation 0 -Path $null -ComputerName $VmHost
+            Set-VM -VMName $VmName -AutomaticStartAction Nothing -AutomaticStopAction Shutdown -ComputerName $VmHost
         }
 
         ## Restore CustomSettings.ini from the backup.
