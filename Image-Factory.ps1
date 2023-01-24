@@ -18,7 +18,7 @@
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES Microsoft Deployment Toolkit PowerShell Modules, Hyper-V Management PowerShell Modules
+.EXTERNALMODULEDEPENDENCIES
 
 .REQUIREDSCRIPTS
 
