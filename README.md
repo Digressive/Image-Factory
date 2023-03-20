@@ -56,7 +56,7 @@ UserPassword=P@ssw0rd
 SkipBDDWelcome=YES
 ```
 
-## Generating A Password File
+## Generating A Password File For SMTP Authentication
 
 The password used for SMTP server authentication must be in an encrypted text file. To generate the password file, run the following command in PowerShell on the computer and logged in with the user that will be running the utility. When you run the command, you will be prompted for a username and password. Enter the username and password you want to use to authenticate to your SMTP server.
 
