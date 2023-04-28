@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 22.10.05
+.VERSION 23.04.28
 
 .GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
 
@@ -87,7 +87,7 @@ If ($NoBanner -eq $False)
   |   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |  
   |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  
             \//_____/        \/        \/     \/                   \/                                        \/       
-                                          Mike Galvin               Version 22.10.05                                  
+                                          Mike Galvin               Version 23.04.28                                  
                                         https://gal.vin            See -help for usage          -Deploy-              
                                            Donate: https://www.paypal.me/digressive                                   
 "
@@ -208,6 +208,26 @@ else {
             }
 
             Write-Host -ForegroundColor Cyan -Object "$Evt"
+        }
+    }
+
+    ## Function for Update Check
+    Function UpdateCheck()
+    {
+        $ScriptVersion = "23.04.28"
+        $RawSource = "https://raw.githubusercontent.com/Digressive/Image-Factory/master/Image-Factory-Deploy.ps1"
+
+        try {
+            $SourceCheck = Invoke-RestMethod -uri "$RawSource"
+            $VerCheck = $SourceCheck -split '\n' | Select-String -Pattern ".VERSION $ScriptVersion" -SimpleMatch -CaseSensitive -Quiet
+
+            If ($VerCheck -ne $True)
+            {
+                Write-Log -Type Conf -Evt "*** There is an update available. ***"
+            }
+        }
+
+        catch {
         }
     }
 
@@ -338,106 +358,92 @@ else {
     ##
     ## Display the current config and log if configured.
     ##
-    Write-Log -Type Conf -Evt "************ Running with the following config *************."
-    Write-Log -Type Conf -Evt "Utility Version:.......22.10.05"
-    Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
-    Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
+    Write-Log -Type Conf -Evt "--- Running with the following config ---"
+    Write-Log -Type Conf -Evt "Utility Version: 23.04.28"
+    UpdateCheck ## Run Update checker function
+    Write-Log -Type Conf -Evt "Hostname: $Env:ComputerName."
+    Write-Log -Type Conf -Evt "Windows Version: $OSV."
 
     If ($MdtDeployPathUsr)
     {
-        Write-Log -Type Conf -Evt "Deploy share:..........$MdtDeployPathUsr."
+        Write-Log -Type Conf -Evt "Deploy share: $MdtDeployPathUsr."
     }
 
     If ($TsId)
     {
-        Write-Log -Type Conf -Evt "No. of TS ID's:........$($TsId.count)."
-        Write-Log -Type Conf -Evt "TS ID's:..............."
+        Write-Log -Type Conf -Evt "No. of TS ID's: $($TsId.count)."
+        Write-Log -Type Conf -Evt "TS ID's:"
         ForEach ($Id in $TsId)
         {
-            Write-Log -Type Conf -Evt ".......................$Id"
+            Write-Log -Type Conf -Evt "$Id"
         }
     }
 
     If ($VmHost)
     {
-        Write-Log -Type Conf -Evt "VM Host:...............$VmHost."
+        Write-Log -Type Conf -Evt "VM Host:$VmHost."
     }
 
     If ($VhdPathUsr)
     {
-        Write-Log -Type Conf -Evt "VHD path:..............$VhdPathUsr."
+        Write-Log -Type Conf -Evt "VHD path: $VhdPathUsr."
     }
 
     If ($BootMedia)
     {
-        Write-Log -Type Conf -Evt "Boot media path:.......$BootMedia."
+        Write-Log -Type Conf -Evt "Boot media path: $BootMedia."
     }
 
     If ($VmNic)
     {
-        Write-Log -Type Conf -Evt "Virtual NIC name:......$VmNic."
+        Write-Log -Type Conf -Evt "Virtual NIC name: $VmNic."
     }
 
     If ($LogPathUsr)
     {
-        Write-Log -Type Conf -Evt "Logs directory:........$LogPath."
+        Write-Log -Type Conf -Evt "Logs directory: $LogPath."
     }
 
     If ($Null -ne $LogHistory)
     {
-        Write-Log -Type Conf -Evt "Logs to keep:..........$LogHistory days."
+        Write-Log -Type Conf -Evt "Logs to keep: $LogHistory days."
     }
 
     If ($MailTo)
     {
-        Write-Log -Type Conf -Evt "E-mail log to:.........$MailTo."
+        Write-Log -Type Conf -Evt "E-mail log to: $MailTo."
     }
 
     If ($MailFrom)
     {
-        Write-Log -Type Conf -Evt "E-mail log from:.......$MailFrom."
+        Write-Log -Type Conf -Evt "E-mail log from: $MailFrom."
     }
 
     If ($MailSubject)
     {
-        Write-Log -Type Conf -Evt "E-mail subject:........$MailSubject."
+        Write-Log -Type Conf -Evt "E-mail subject: $MailSubject."
     }
 
     If ($SmtpServer)
     {
-        Write-Log -Type Conf -Evt "SMTP server:...........$SmtpServer."
-    }
-
-    If ($SmtpPort)
-    {
-        Write-Log -Type Conf -Evt "SMTP Port:.............$SmtpPort."
+        Write-Log -Type Conf -Evt "SMTP server: Configured"
     }
 
     If ($SmtpUser)
     {
-        Write-Log -Type Conf -Evt "SMTP user:.............$SmtpUser."
-    }
-
-    If ($SmtpPwd)
-    {
-        Write-Log -Type Conf -Evt "SMTP pwd file:.........$SmtpPwd."
-    }
-
-    If ($SmtpServer)
-    {
-        Write-Log -Type Conf -Evt "-UseSSL switch:........$UseSsl."
+        Write-Log -Type Conf -Evt "SMTP Auth: Configured"
     }
 
     If ($VBox)
     {
-        Write-Log -Type Conf -Evt "-VBox switch:..........$VBox."
+        Write-Log -Type Conf -Evt "-VBox switch: $VBox."
     }
 
     If ($Remote)
     {
-        Write-Log -Type Conf -Evt "-Remote switch:........$Remote."
+        Write-Log -Type Conf -Evt "-Remote switch: $Remote."
     }
-    Write-Log -Type Conf -Evt "************************************************************"
+    Write-Log -Type Conf -Evt "---"
     Write-Log -Type Info -Evt "Process started"
     ##
     ## Display current config ends here.

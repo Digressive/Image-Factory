@@ -1,6 +1,6 @@
 # Image Factory Utility
 
-Automate Creation of WIM Files
+## Automate Creation of WIM Files
 
 For full change log and more information, [visit my site.](https://gal.vin/utils/image-factory-utility/)
 
@@ -16,6 +16,7 @@ Please consider supporting my work:
 
 Please report any problems via the ‘issues’ tab on GitHub.
 
+Thanks
 -Mike
 
 ## Features and Requirements
@@ -105,3 +106,95 @@ Here’s a list of all the command line switches and example configurations.
 ```
 
 This will use Hyper-V VMs on the local machine to build wim files from the task sequences W11-21H2 and W10-21H2. The wim files will be imported to the deployment share specified.
+
+## Change Log
+
+### 2023-04-28: Version 23.04.28
+
+* Removed specific SMTP config info from config report.
+* Added script update checker - shows if an update is available in the log and console. If the internet is not reachable it silently errors out.
+
+### 2022-06-18: Version 22.06.18
+
+* Fixed Get-Service check outputting to console.
+
+### 2022-06-17: Version 22.06.17
+
+* Fixed an issue with Windows Server 2012 R2 when checking for the Hyper-V service to be installed and running.
+
+### 2022-06-14: Version 22.06.07
+
+* Added new feature: log can now be emailed to multiple addresses.
+* Added checks and balances to help with configuration as I'm very aware that the initial configuration can be troublesome. Running the utility manually is a lot more friendly and step-by-step now.
+* Added -Help to give usage instructions in the terminal. Running the script with no options will also trigger the -help switch.
+* Cleaned user entered paths so that trailing slashes no longer break things or have otherwise unintended results.
+* Added -LogRotate [days] to removed old logs created by the utility.
+* Streamlined config report so non configured options are not shown.
+* Added donation link to the ASCII banner.
+* Cleaned up code, removed unneeded log noise.
+
+### 2021-12-02: Version 21.12.01
+
+* Added option to use Oracle Virtual Box instead of Hyper-V.
+* Configured logs path now is created, if it does not exist.
+* Added OS version info.
+* Added an option to specify the Port for SMTP communication.
+
+### 2021-06-22: Version 21.06.22
+
+* Added a progression bar display.
+* Changed a variable to prevent conflicts with future PowerShell versions.
+
+### 2020-02-27: Version 20.02.24 ‘Robot’
+
+New features:
+
+* Refactored code.
+* Fully backwards compatible.
+* Added ASCII banner art when run in the console.
+* Added option to disable the ASCII banner art.
+
+### 2019-09-04 v2.9
+
+* Added custom subject line for e-mail.
+
+### 2018-12-17 v2.8
+
+* The script will now set automatic checkpoints to 'disabled' on the VM's. This is to help with VM disk management and clean up.
+
+### 2017-10-16 v2.7
+
+* Changed SMTP authentication to require an encrypted password file.
+* Added instructions on how to generate an encrypted password file.
+
+### 2017-10-09 v2.6
+
+* Added necessary information to add the script to the PowerShell Gallery.
+
+### 2017-09-18 v2.5
+
+* Added a sanity check of the MDT deployment share. The script now checks for an existing CustomSettings-backup.ini file. If it exists, it reports that the deployment share is not clean.
+* Added extra line breaks when editing the CustomSettings.ini as previously it was adding the required configuration on the last line of the ini file and causing the deployment to fail. Many thanks to Twitter user [@thestardawg](https://twitter.com/thestardawg) for reporting this bug.
+
+### 2017-08-26 v2.4
+
+* Improved logging so that the log file and console output is now more readable.
+
+### 2017-07-22 v2.3
+
+* Improved commenting on the code for documentation purposes.
+* Added authentication and SSL options for e-mail notification.
+
+### 2017-05-11 v2.2
+
+* Added command line configuration options so the script itself does not need to be edited.
+* Added code to manage the Virtual Machines without the need for extra configuration options.
+* Removed some unnecessary extra configuration options and variables.
+
+### 2017-04-25 v2.1
+
+I've added logging to the script and the ability to email the log on completion. I've also added a variable to configure the Virtual Switch that the VM's Network Adaptor should use. This was an oversight on the previous version.
+
+### 2017-04-17 Minor update
+
+I've added hour and minutes to the WIM file creation name as I have been running multiple images of the same Task Sequence within a day and needed some extra data to prevent the image from over writing the previous one. I've also made another script, using this one as a base so I can generate VMs to test the deployment of the captured images after I've manually renamed them in MDT and added to the task sequences. The VMs are named after the Task Sequence ID and do not delete after the Task Sequence completes.
