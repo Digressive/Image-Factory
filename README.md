@@ -109,6 +109,10 @@ This will use Hyper-V VMs on the local machine to build wim files from the task 
 
 ## Change Log
 
+### 2023-09-01: Version 23.09.01
+
+* Added -ProgCheck option. With this option set, notifications will be sent after each VM is backup is finished.
+
 ### 2023-04-28: Version 23.04.28
 
 * Removed specific SMTP config info from config report.

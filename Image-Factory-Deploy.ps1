@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 23.04.28
+.VERSION 23.09.01
 
 .GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
 
@@ -76,6 +76,7 @@ Param(
     [switch]$Remote,
     [switch]$VBox,
     [switch]$Help,
+    [switch]$ProgCheck,
     [switch]$NoBanner)
 
 If ($NoBanner -eq $False)
@@ -87,7 +88,7 @@ If ($NoBanner -eq $False)
   |   |  Y Y  \/ /_/  >  |     \   / __ \\  \___|  | (  <_> )  | \/\___  | |    |  /  |  | |  |  |_|  ||  |  \___  |  
   |___|__|_|  /\___  /   \___  /  (____  /\___  >__|  \____/|__|   / ____| |______/   |__| |__|____/__||__|  / ____|  
             \//_____/        \/        \/     \/                   \/                                        \/       
-                                          Mike Galvin               Version 23.04.28                                  
+                                          Mike Galvin               Version 23.09.01                                  
                                         https://gal.vin            See -help for usage          -Deploy-              
                                            Donate: https://www.paypal.me/digressive                                   
 "
@@ -211,10 +212,66 @@ else {
         }
     }
 
+    ## Function for Notifications
+    Function Notify()
+    {
+        ## This whole block is for e-mail, if it is configured.
+        If ($SmtpServer)
+        {
+            If (Test-Path -Path $Log)
+            {
+                ## Default e-mail subject if none is configured.
+                If ($Null -eq $MailSubject)
+                {
+                    $MailSubject = "Image Factory Utility Log"
+                }
+    
+                ## Default Smtp Port if none is configured.
+                If ($Null -eq $SmtpPort)
+                {
+                    $SmtpPort = "25"
+                }
+    
+                ## Setting the contents of the log to be the e-mail body.
+                $MailBody = Get-Content -Path $Log | Out-String
+    
+                ForEach ($MailAddress in $MailTo)
+                {
+                    ## If an smtp password is configured, get the username and password together for authentication.
+                    ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
+                    If ($SmtpPwd)
+                    {
+                        $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
+                        $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
+    
+                        ## If -ssl switch is used, send the email with SSL.
+                        ## If it isn't then don't use SSL, but still authenticate with the credentials.
+                        If ($UseSsl)
+                        {
+                            Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
+                        }
+    
+                        else {
+                            Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
+                        }
+                    }
+    
+                    else {
+                        Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
+                    }
+                }
+            }
+            else {
+                Write-Host -ForegroundColor Red -BackgroundColor Black -Object "There's no log file to email."
+            }
+        }
+        ## End of Email block
+    }
+
     ## Function for Update Check
     Function UpdateCheck()
     {
-        $ScriptVersion = "23.04.28"
+        $ScriptVersion = "23.09.01"
         $RawSource = "https://raw.githubusercontent.com/Digressive/Image-Factory/master/Image-Factory-Deploy.ps1"
 
         try {
@@ -359,7 +416,7 @@ else {
     ## Display the current config and log if configured.
     ##
     Write-Log -Type Conf -Evt "--- Running with the following config ---"
-    Write-Log -Type Conf -Evt "Utility Version: 23.04.28"
+    Write-Log -Type Conf -Evt "Utility Version: 23.09.01"
     UpdateCheck ## Run Update checker function
     Write-Log -Type Conf -Evt "Hostname: $Env:ComputerName."
     Write-Log -Type Conf -Evt "Windows Version: $OSV."
@@ -608,6 +665,11 @@ else {
         ## Increase count for progress bar
         $i = $i+1
         $Succi = $Succi+1
+
+        If ($ProgCheck)
+        {
+            Notify
+        }
     }
     ##
     ## End of the deploy process for TS's
@@ -622,57 +684,9 @@ else {
         Get-ChildItem -Path "$LogPath\Image-Factory-Deploy_*" -File | Where-Object CreationTime -lt (Get-Date).AddDays(-$LogHistory) | Remove-Item -Recurse
     }
 
-    ## This whole block is for e-mail, if it is configured.
-    If ($SmtpServer)
+    If ($ProgCheck -eq $false)
     {
-        If (Test-Path -Path $Log)
-        {
-            ## Default e-mail subject if none is configured.
-            If ($Null -eq $MailSubject)
-            {
-                $MailSubject = "Image Factory Utility Deploy Log"
-            }
-
-                ## Default Smtp Port if none is configured.
-                If ($Null -eq $SmtpPort)
-                {
-                    $SmtpPort = "25"
-                }
-
-                ## Setting the contents of the log to be the e-mail body. 
-                $MailBody = Get-Content -Path $Log | Out-String
-
-                ForEach ($MailAddress in $MailTo)
-                {
-                    ## If an smtp password is configured, get the username and password together for authentication.
-                    ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
-                    If ($SmtpPwd)
-                    {
-                        $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
-                        $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
-
-                        ## If -ssl switch is used, send the email with SSL.
-                        ## If it isn't then don't use SSL, but still authenticate with the credentials.
-                        If ($UseSsl)
-                        {
-                            Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
-                        }
-
-                        else {
-                            Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
-                        }
-                    }
-
-                else {
-                    Send-MailMessage -To $MailAddress -From $MailFrom -Subject "$MailSubject $Succi/$($TsId.count) TSs Successful" -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
-                }
-            }
-        }
-
-        else {
-            Write-Host -ForegroundColor Red -BackgroundColor Black -Object "There's no log file to email."
-        }
+        Notify
     }
-    ## End of Email block
 }
 ## End
