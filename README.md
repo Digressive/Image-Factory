@@ -90,6 +90,7 @@ Here’s a list of all the command line switches and example configurations.
 | -LogRotate | Remove logs produced by the utility older than X days | [number] |
 | -NoBanner | Use this option to hide the ASCII art title in the console. | N/A |
 | -Help | Display usage information. No arguments also displays help. | N/A |
+| -ProgCheck | Send notifications (email or webhook) after each Task Sequence is processed. | N/A |
 | -Subject | Specify a subject line. If you leave this blank the default subject will be used | "'[Server: Notification]'" |
 | -SendTo | The e-mail address the log should be sent to. For multiple address, separate with a comma. | [example@contoso.com] |
 | -From | The e-mail address the log should be sent from. | [example@contoso.com] |
@@ -111,7 +112,7 @@ This will use Hyper-V VMs on the local machine to build wim files from the task 
 
 ### 2023-09-01: Version 23.09.01
 
-* Added -ProgCheck option. With this option set, notifications will be sent after each VM is backup is finished.
+* Added -ProgCheck option. With this option set, notifications will be sent after each Task Sequence is processed.
 
 ### 2023-04-28: Version 23.04.28
 

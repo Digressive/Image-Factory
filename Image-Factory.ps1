@@ -113,6 +113,7 @@ If ($PSBoundParameters.Values.Count -eq 0 -or $Help)
 
     Use -Remote when the Hyper-V server is a remote computer.
     Use -VBox if using Virtual Box instead of Hyper-V as the VM platform.
+    Use -ProgCheck to send notifications (email or webhook) after each Task Sequence is processed.
 
     To output a log: -L [path\].
     To remove logs produced by the utility older than X days: -LogRotate [number].
