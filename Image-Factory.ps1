@@ -98,7 +98,7 @@ If ($NoBanner -eq $False)
 
 If ($PSBoundParameters.Values.Count -eq 0 -or $Help)
 {
-    Write-Host -Object "Usage:
+    Write-Host -Object "  Usage:
     From a terminal run: [path\]Image-Factory.ps1 -Build [path\] -Deploy [path\] -Boot [path\]LiteTouchPE_x64.iso
     -Vnic [virtual NIC name] -Ts W11-21H2,W10-21H2
     This will use Hyper-V VMs on the local machine to build wim files from the task sequences W11-21H2 and W10-21H2.
@@ -182,7 +182,7 @@ else {
                 Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Evt"
             }
             
-            Write-Host -Object "$(Get-DateFormat) [INFO] $Evt"
+            Write-Host -Object "  $(Get-DateFormat) [INFO] $Evt"
         }
 
         If ($Type -eq "Succ")
@@ -192,7 +192,7 @@ else {
                 Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Evt"
             }
 
-            Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Evt"
+            Write-Host -ForegroundColor Green -Object "  $(Get-DateFormat) [SUCCESS] $Evt"
         }
 
         If ($Type -eq "Err")
@@ -202,7 +202,7 @@ else {
                 Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Evt"
             }
 
-            Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Evt"
+            Write-Host -ForegroundColor Red -BackgroundColor Black -Object "  $(Get-DateFormat) [ERROR] $Evt"
         }
 
         If ($Type -eq "Conf")
@@ -212,7 +212,7 @@ else {
                 Add-Content -Path $Log -Encoding ASCII -Value "$Evt"
             }
 
-            Write-Host -ForegroundColor Cyan -Object "$Evt"
+            Write-Host -ForegroundColor Cyan -Object "  $Evt"
         }
     }
 
@@ -266,7 +266,7 @@ else {
                 }
             }
             else {
-                Write-Host -ForegroundColor Red -BackgroundColor Black -Object "There's no log file to email."
+                Write-Host -ForegroundColor Red -BackgroundColor Black -Object "  There's no log file to email."
             }
         }
         ## End of Email block
