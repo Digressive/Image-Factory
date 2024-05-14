@@ -4,7 +4,7 @@
 
 .GUID 849ea0c5-1c44-49c1-817e-fd7702b83752
 
-.AUTHOR Mike Galvin Contact: mike@gal.vin 
+.AUTHOR Mike Galvin Contact: digressive@outlook.com
 
 .COMPANYNAME Mike Galvin
 
