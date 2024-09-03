@@ -12,7 +12,7 @@
 
 .TAGS Microsoft Deployment Toolkit MDT Hyper-V Windows OSD
 
-.LICENSEURI
+.LICENSEURI https://github.com/Digressive/Image-Factory?tab=MIT-1-ov-file
 
 .PROJECTURI https://gal.vin/utils/image-factory-utility/
 
